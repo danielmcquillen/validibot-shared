@@ -2,7 +2,7 @@
 
 # Validibot Shared
 
-**Shared Pydantic models for Validibot validator containers**
+**Shared Pydantic models for Validibot Advanced Validator containers**
 
 [![PyPI version](https://badge.fury.io/py/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
 [![Python versions](https://img.shields.io/pypi/pyversions/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
