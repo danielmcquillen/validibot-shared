@@ -81,33 +81,33 @@ Validibot uses an "envelope" pattern for validator communication. Every validati
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Validibot Core Platform                       │
-│                                                                  │
-│  1. Creates ValidationInputEnvelope with:                        │
-│     • run_id, validator info                                     │
+│                    Validibot Core Platform                      │
+│                                                                 │
+│  1. Creates ValidationInputEnvelope with:                       │
+│     • run_id, validator info                                    │
 │     • input_files[] (GCS/S3 URIs)                               │
-│     • inputs (validator-specific config)                         │
-│     • callback_url for async notification                        │
+│     • inputs (validator-specific config)                        │
+│     • callback_url for async notification                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼ JSON
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Validator Container                           │
-│                    (EnergyPlus, FMI, etc.)                       │
-│                                                                  │
-│  1. Parses input envelope                                        │
-│  2. Downloads input files from URIs                              │
-│  3. Runs validation/simulation                                   │
-│  4. Creates ValidationOutputEnvelope with results                │
+│                    Validator Container                          │
+│                    (EnergyPlus, FMI, etc.)                      │
+│                                                                 │
+│  1. Parses input envelope                                       │
+│  2. Downloads input files from URIs                             │
+│  3. Runs validation/simulation                                  │
+│  4. Creates ValidationOutputEnvelope with results               │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼ JSON (callback or response)
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Validibot Core Platform                       │
-│                                                                  │
-│  1. Receives output envelope                                     │
-│  2. Parses and validates with Pydantic                           │
-│  3. Stores findings, metrics, artifacts                          │
+│                    Validibot Core Platform                      │
+│                                                                 │
+│  1. Receives output envelope                                    │
+│  2. Parses and validates with Pydantic                          │
+│  3. Stores findings, metrics, artifacts                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
