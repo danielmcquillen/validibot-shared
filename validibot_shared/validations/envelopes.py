@@ -192,6 +192,33 @@ class InputFileItem(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class ResourceFileItem(BaseModel):
+    """
+    A resource file needed by the validator.
+
+    Resource files are auxiliary files that validators need to run, but are not
+    submission data. Examples: weather files for EnergyPlus, libraries for FMI.
+
+    Unlike InputFileItem (which is per-submission), resource files are reusable
+    across validations and managed via the Validator Library UI in Django.
+
+    The 'type' field indicates what kind of resource this is (weather, library, etc.)
+    and validators use this to locate the appropriate file for their needs.
+    """
+
+    id: str = Field(description="Resource file UUID from Django database")
+
+    type: str = Field(
+        description="Resource type (e.g., 'weather', 'library', 'config')"
+    )
+
+    uri: str = Field(
+        description="Storage URI to the file (gs:// or file:// for self-hosted)"
+    )
+
+    model_config = {"extra": "forbid"}
+
+
 class ValidatorInfo(BaseModel):
     """
     Information about the validator being executed.
@@ -347,6 +374,14 @@ class ValidationInputEnvelope(BaseModel):
     input_files: list[InputFileItem] = Field(
         default_factory=list,
         description="File inputs for the validator (GCS URIs with roles)",
+    )
+
+    resource_files: list[ResourceFileItem] = Field(
+        default_factory=list,
+        description=(
+            "Resource files needed by the validator (weather, libraries, configs). "
+            "These are auxiliary files managed via Validator Library, not submission data."
+        ),
     )
 
     inputs: dict[str, Any] = Field(
