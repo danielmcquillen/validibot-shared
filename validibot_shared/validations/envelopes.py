@@ -37,18 +37,23 @@ app and Advanced validator containers:
 3. Validator reads inputs, runs validation, writes outputs to local storage
 4. Docker container exits, Django reads output.json directly
 
-## Why Two Separate Fields: input_files vs inputs?
+## Why Three Separate Fields: input_files, resource_files, and inputs?
 
-- **input_files**: Generic list of GCS file URIs (IDF, EPW, FMU, XML, etc.)
-  - NEVER changes in subclasses - all validators need file inputs
-  - Role field distinguishes file purposes (e.g., 'primary-model' vs 'weather')
+- **input_files**: User-submitted files (IDF, FMU, XML, etc.)
+  - Files uploaded by users as part of their submission
+  - Role field distinguishes file purposes (e.g., 'primary-model')
+
+- **resource_files**: Auxiliary files needed by validators (weather files, libraries)
+  - Managed by system admins, not user-submitted
+  - Examples: EPW weather files for EnergyPlus, FMU libraries for FMI
+  - Stored in ValidatorResourceFile model with org/system scoping
 
 - **inputs**: Domain-specific configuration parameters
   - Base class uses dict[str, Any] for flexibility
   - Subclasses override with typed Pydantic models (e.g., EnergyPlusInputs)
   - Examples: timestep settings, output variables, simulation options
 
-This separation keeps file handling generic while allowing type-safe config.
+This separation keeps user submissions, system resources, and config distinct.
 
 ## Why Separate outputs Field?
 
@@ -167,11 +172,12 @@ class SupportedMimeType(str, Enum):
 
 class InputFileItem(BaseModel):
     """
-    A file input for the validator.
+    A user-submitted file input for the validator.
 
-    Files are stored in GCS and referenced by URI. The 'role' field allows
-    validators to understand what each file is for (e.g., 'primary-model' vs
-    'weather' for EnergyPlus).
+    Files are stored in GCS/local storage and referenced by URI. The 'role' field
+    allows validators to understand what each file is for (e.g., 'primary-model').
+
+    Note: Auxiliary files like weather files are in resource_files, not input_files.
     """
 
     name: str = Field(description="Human-readable name of the file")
@@ -180,9 +186,7 @@ class InputFileItem(BaseModel):
 
     role: str | None = Field(
         default=None,
-        description=(
-            "Validator-specific role (e.g., 'primary-model', 'weather', 'config')"
-        ),
+        description="Validator-specific role (e.g., 'primary-model', 'config')",
     )
 
     uri: str = Field(
