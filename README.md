@@ -50,6 +50,11 @@ This library ensures both sides speak the same language with full type safety an
 - **Domain-specific extensions** — Typed subclasses for EnergyPlus, FMI, and custom validators
 - **Lightweight** — Only depends on Pydantic, no heavy dependencies
 
+## Disclaimer
+
+> [!NOTE]
+> This library defines data interchange models only — it does not process, store, or transmit user data. However, the models are used by validator containers that execute user-supplied files. See the [LICENSE](LICENSE) for full warranty disclaimer. The authors accept no liability for the behaviour of systems built using these models.
+
 ## Installation
 
 ```bash
