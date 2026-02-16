@@ -79,6 +79,14 @@ dmypy.json
 Thumbs.db
 Desktop.ini
 
+# Security — never commit secrets or key material
+*.pem
+*.key
+*.p12
+credentials.json
+service-account.json
+db.sqlite3
+
 # Temporary files
 tmp/
 
