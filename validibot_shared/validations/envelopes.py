@@ -384,7 +384,8 @@ class ValidationInputEnvelope(BaseModel):
         default_factory=list,
         description=(
             "Resource files needed by the validator (weather, libraries, configs). "
-            "These are auxiliary files managed via Validator Library, not submission data."
+            "These are auxiliary files managed via Validator Library, not "
+            "submission data."
         ),
     )
 
