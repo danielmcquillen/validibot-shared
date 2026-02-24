@@ -50,7 +50,7 @@ If you're adding envelope models for a new validator type:
 3. Create typed envelope subclasses in `envelopes.py`
 4. Add tests under `tests/`
 
-See the existing `energyplus/` and `fmi/` directories for examples.
+See the existing `energyplus/` and `fmu/` directories for examples.
 
 ## Code Style
 

@@ -5,12 +5,12 @@ from validibot_shared.energyplus.models import (
     EnergyPlusSimulationMetrics,
     EnergyPlusSimulationOutputs,
 )
-from validibot_shared.fmi.models import FMIProbeResult, FMIVariableMeta
+from validibot_shared.fmu.models import FMUProbeResult, FMUVariableMeta
 
 __all__ = [
     "EnergyPlusSimulationLogs",
     "EnergyPlusSimulationMetrics",
     "EnergyPlusSimulationOutputs",
-    "FMIProbeResult",
-    "FMIVariableMeta",
+    "FMUProbeResult",
+    "FMUVariableMeta",
 ]

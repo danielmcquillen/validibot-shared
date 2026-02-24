@@ -3,7 +3,7 @@ Pydantic schemas for Advanced validator job execution envelopes.
 
 These schemas define the contract between Django and Advanced validator
 containers/services. Advanced validators are validations that run in separate
-containers or remote services (e.g., EnergyPlus, FMI), as opposed to Simple
+containers or remote services (e.g., EnergyPlus, FMU), as opposed to Simple
 validators that run directly within Django.
 
 This library is used by both the Django app and Advanced validator services to ensure
@@ -45,7 +45,7 @@ app and Advanced validator containers:
 
 - **resource_files**: Auxiliary files needed by validators (weather files, libraries)
   - Managed by system admins, not user-submitted
-  - Examples: EPW weather files for EnergyPlus, FMU libraries for FMI
+  - Examples: EPW weather files for EnergyPlus, FMU libraries for FMU
   - Stored in ValidatorResourceFile model with org/system scoping
 
 - **inputs**: Domain-specific configuration parameters
@@ -68,7 +68,7 @@ This separation keeps user submissions, system resources, and config distinct.
 
 ## Subclassing Pattern
 
-Domain-specific validators (energyplus, fmi, xml) create typed subclasses:
+Domain-specific validators (energyplus, fmu, xml) create typed subclasses:
 
 ```python
 # In energyplus/envelopes.py
@@ -140,7 +140,7 @@ class ValidatorType(str, Enum):
     JSON_SCHEMA = "JSON_SCHEMA"
     XML_SCHEMA = "XML_SCHEMA"
     ENERGYPLUS = "ENERGYPLUS"
-    FMI = "FMI"
+    FMU = "FMU"
     CUSTOM_VALIDATOR = "CUSTOM_VALIDATOR"
     AI_ASSIST = "AI_ASSIST"
 
@@ -201,7 +201,7 @@ class ResourceFileItem(BaseModel):
     A resource file needed by the validator.
 
     Resource files are auxiliary files that validators need to run, but are not
-    submission data. Examples: weather files for EnergyPlus, libraries for FMI.
+    submission data. Examples: weather files for EnergyPlus, libraries for FMU.
 
     Unlike InputFileItem (which is per-submission), resource files are reusable
     across validations and managed via the Validator Library UI in Django.
@@ -231,7 +231,7 @@ class ValidatorInfo(BaseModel):
     The 'type' field determines:
     1. Which validator container to run (e.g., 'validibot-validator-energyplus')
     2. Which envelope subclass Django uses for deserialization
-       (EnergyPlusInputEnvelope, FMIInputEnvelope, etc.)
+       (EnergyPlusInputEnvelope, FMUInputEnvelope, etc.)
 
     This class appears in both input and output envelopes to maintain traceability
     of which validator version produced which results.
@@ -240,7 +240,7 @@ class ValidatorInfo(BaseModel):
     id: str = Field(description="Validator UUID from Django database")
 
     type: ValidatorType = Field(
-        description="Validator type (e.g., 'ENERGYPLUS', 'FMI', 'JSON_SCHEMA')"
+        description="Validator type (e.g., 'ENERGYPLUS', 'FMU', 'JSON_SCHEMA')"
     )
 
     version: str = Field(description="Validator version (e.g., '1.0.0')")
@@ -350,7 +350,7 @@ class ValidationInputEnvelope(BaseModel):
     This pattern allows:
     - Generic base class for all validators (this class)
     - Type-safe domain-specific subclasses (EnergyPlusInputEnvelope,
-      FMIInputEnvelope, etc.)
+      FMUInputEnvelope, etc.)
     - Django to serialize/deserialize using the correct subclass based on
       validator.type
 
@@ -542,7 +542,7 @@ class ValidationOutputEnvelope(BaseModel):
     This pattern allows:
     - Generic base class for all validators (this class)
     - Type-safe domain-specific subclasses (EnergyPlusOutputEnvelope,
-      FMIOutputEnvelope, etc.)
+      FMUOutputEnvelope, etc.)
     - Django to deserialize using the correct subclass based on validator.type
 
     ## Generic vs Domain-Specific Outputs

@@ -28,7 +28,7 @@
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMI) |
+| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ---
@@ -47,7 +47,7 @@ This library ensures both sides speak the same language with full type safety an
 
 - **Type-safe envelopes** — Pydantic models with full IDE autocomplete and type checking
 - **Runtime validation** — Automatic validation of all data at serialization boundaries
-- **Domain-specific extensions** — Typed subclasses for EnergyPlus, FMI, and custom validators
+- **Domain-specific extensions** — Typed subclasses for EnergyPlus, FMU, and custom validators
 - **Lightweight** — Only depends on Pydantic, no heavy dependencies
 
 ## Disclaimer
@@ -98,7 +98,7 @@ Validibot uses an "envelope" pattern for validator communication. Every validati
                               ▼ JSON
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Validator Container                          │
-│                    (EnergyPlus, FMI, etc.)                      │
+│                    (EnergyPlus, FMU, etc.)                      │
 │                                                                 │
 │  1. Parses input envelope                                       │
 │  2. Downloads input files from URIs                             │
@@ -168,9 +168,9 @@ validibot_shared/
 ├── energyplus/           # EnergyPlus-specific models and envelopes
 │   ├── models.py         # Simulation output models (metrics, results)
 │   └── envelopes.py      # Typed envelope subclasses
-└── fmi/                  # FMI/FMU-specific models
+└── fmu/                  # FMU-specific models
     ├── models.py         # Probe result models
-    └── envelopes.py      # FMI envelope subclasses
+    └── envelopes.py      # FMU envelope subclasses
 ```
 
 ## Usage Examples
@@ -226,22 +226,22 @@ for message in envelope.messages:
     print(f"[{message.severity}] {message.text}")
 ```
 
-### FMI Probe Results
+### FMU Probe Results
 
 ```python
-from validibot_shared.fmi.models import FMIProbeResult, FMIVariableMeta
+from validibot_shared.fmu.models import FMUProbeResult, FMUVariableMeta
 
 # Create a successful probe result
-result = FMIProbeResult.success(
+result = FMUProbeResult.success(
     variables=[
-        FMIVariableMeta(name="temperature", causality="output", value_type="Real"),
-        FMIVariableMeta(name="pressure", causality="output", value_type="Real"),
+        FMUVariableMeta(name="temperature", causality="output", value_type="Real"),
+        FMUVariableMeta(name="pressure", causality="output", value_type="Real"),
     ],
     execution_seconds=0.5,
 )
 
 # Create a failure result
-result = FMIProbeResult.failure(
+result = FMUProbeResult.failure(
     errors=["Invalid FMU: missing modelDescription.xml"]
 )
 
@@ -322,7 +322,7 @@ This library is one component of the Validibot open-source data validation platf
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMI) |
+| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ### How It Fits Together
@@ -348,7 +348,7 @@ This library is one component of the Validibot open-source data validation platf
 ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
 │ validibot-cli   │    │ validibot-validators│    │ validibot-shared    │
 │                 │    │                     │    │  (this repo)        │
-│ Terminal access │    │ EnergyPlus, FMI     │    │                     │
+│ Terminal access │    │ EnergyPlus, FMU     │    │                     │
 │ to API          │    │ containers          │    │ Pydantic models     │
 │                 │    │        │            │    │ (shared contract)   │
 └─────────────────┘    └────────┼────────────┘    └─────────────────────┘

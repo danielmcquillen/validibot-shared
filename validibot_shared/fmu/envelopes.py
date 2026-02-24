@@ -1,11 +1,11 @@
 """
-Pydantic envelopes for FMI Advanced validator jobs.
+Pydantic envelopes for FMU Advanced validator jobs.
 
-FMI is an Advanced validator - it runs in a separate container/service rather
-than within the Django app. These schemas define the contract between Django
-and the FMI validator container:
+The FMU validator is an Advanced validator - it runs in a separate
+container/service rather than within the Django app. These schemas define
+the contract between Django and the FMU validator container:
 - Input envelope: FMU URI plus resolved input values and simulation config
-- Output envelope: FMI outputs, metrics, messages, and artifacts
+- Output envelope: FMU outputs, metrics, messages, and artifacts
 
 Inputs/outputs are keyed by validator catalog slugs. Workflow authors cannot
 remap signals; bindings live on catalog entries (input_binding_path) and
@@ -28,8 +28,8 @@ from validibot_shared.validations.envelopes import (
 )
 
 
-class FMISimulationConfig(BaseModel):
-    """Simulation configuration for FMI runs."""
+class FMUSimulationConfig(BaseModel):
+    """Simulation configuration for FMU runs."""
 
     start_time: float = Field(
         default=0.0,
@@ -53,15 +53,15 @@ class FMISimulationConfig(BaseModel):
     )
 
 
-class FMIInputs(BaseModel):
+class FMUInputs(BaseModel):
     """Resolved inputs plus simulation config, keyed by catalog slugs."""
 
     input_values: dict[str, Any] = Field(
         default_factory=dict,
         description="Input values keyed by catalog slugs.",
     )
-    simulation: FMISimulationConfig = Field(
-        default_factory=FMISimulationConfig,
+    simulation: FMUSimulationConfig = Field(
+        default_factory=FMUSimulationConfig,
         description="Simulation time/step configuration.",
     )
     output_variables: list[str] = Field(
@@ -72,8 +72,8 @@ class FMIInputs(BaseModel):
     )
 
 
-class FMIOutputs(BaseModel):
-    """FMI execution results keyed by catalog slugs."""
+class FMUOutputs(BaseModel):
+    """FMU execution results keyed by catalog slugs."""
 
     output_values: dict[str, Any] = Field(
         default_factory=dict,
@@ -96,22 +96,22 @@ class FMIOutputs(BaseModel):
     )
 
 
-class FMIInputEnvelope(ValidationInputEnvelope):
-    """Input envelope for FMI validator containers."""
+class FMUInputEnvelope(ValidationInputEnvelope):
+    """Input envelope for FMU validator containers."""
 
-    inputs: FMIInputs
+    inputs: FMUInputs
 
 
-class FMIOutputEnvelope(ValidationOutputEnvelope):
-    """Output envelope from FMI validator containers.
+class FMUOutputEnvelope(ValidationOutputEnvelope):
+    """Output envelope from FMU validator containers.
 
     Note: outputs can be None for failure cases where simulation didn't complete.
     """
 
-    outputs: FMIOutputs | None = None
+    outputs: FMUOutputs | None = None
 
 
-def build_fmi_input_envelope(
+def build_fmu_input_envelope(
     *,
     run_id: str,
     validator,
@@ -124,11 +124,11 @@ def build_fmi_input_envelope(
     input_values: dict[str, Any],
     callback_url: str,
     execution_bundle_uri: str,
-    simulation: FMISimulationConfig | None = None,
+    simulation: FMUSimulationConfig | None = None,
     output_variables: list[str] | None = None,
-) -> FMIInputEnvelope:
+) -> FMUInputEnvelope:
     """
-    Build an FMIInputEnvelope from Django validation data.
+    Build an FMUInputEnvelope from Django validation data.
 
     Args:
         run_id: ValidationRun ID
@@ -142,7 +142,7 @@ def build_fmi_input_envelope(
         input_values: Resolved inputs keyed by catalog slug
         callback_url: URL to POST callback
         execution_bundle_uri: Base URI/path for this run's files
-        simulation: Optional FMISimulationConfig
+        simulation: Optional FMUSimulationConfig
         output_variables: Optional list of catalog slugs to capture (empty=all outputs)
     """
 
@@ -155,9 +155,9 @@ def build_fmi_input_envelope(
         )
     ]
 
-    envelope_inputs = FMIInputs(
+    envelope_inputs = FMUInputs(
         input_values=input_values,
-        simulation=simulation or FMISimulationConfig(),
+        simulation=simulation or FMUSimulationConfig(),
         output_variables=output_variables or [],
     )
 
@@ -166,7 +166,7 @@ def build_fmi_input_envelope(
         execution_bundle_uri=execution_bundle_uri,
     )
 
-    envelope = FMIInputEnvelope(
+    envelope = FMUInputEnvelope(
         run_id=run_id,
         validator={
             "id": str(validator.id),

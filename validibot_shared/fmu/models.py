@@ -1,5 +1,5 @@
 """
-FMI probe result models.
+FMU probe result models.
 
 These models define the contract for FMU probing operations - extracting
 metadata from modelDescription.xml to populate validator catalog entries.
@@ -15,7 +15,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class FMIVariableMeta(BaseModel):
+class FMUVariableMeta(BaseModel):
     """Metadata extracted from modelDescription.xml."""
 
     model_config = ConfigDict(extra="forbid")
@@ -28,13 +28,13 @@ class FMIVariableMeta(BaseModel):
     unit: str | None = None
 
 
-class FMIProbeResult(BaseModel):
+class FMUProbeResult(BaseModel):
     """Result of a short probe run to vet an FMU before approval."""
 
     model_config = ConfigDict(extra="forbid")
 
     status: Literal["success", "error"] = "error"
-    variables: list[FMIVariableMeta] = Field(default_factory=list)
+    variables: list[FMUVariableMeta] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     messages: list[str] = Field(default_factory=list)
     execution_seconds: float | None = None
@@ -43,10 +43,10 @@ class FMIProbeResult(BaseModel):
     def success(
         cls,
         *,
-        variables: list[FMIVariableMeta],
+        variables: list[FMUVariableMeta],
         execution_seconds: float | None = None,
         messages: list[str] | None = None,
-    ) -> FMIProbeResult:
+    ) -> FMUProbeResult:
         return cls(
             status="success",
             variables=variables,
@@ -61,7 +61,7 @@ class FMIProbeResult(BaseModel):
         *,
         errors: list[str],
         messages: list[str] | None = None,
-    ) -> FMIProbeResult:
+    ) -> FMUProbeResult:
         return cls(
             status="error",
             variables=[],
