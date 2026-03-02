@@ -28,14 +28,14 @@
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMU) |
+| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus™, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ---
 
 ## What is Validibot Shared?
 
-Validibot Shared provides the Pydantic models that define how the Validibot core platform communicates with advanced validator containers. When Validibot needs to run a complex validation (like an EnergyPlus simulation or FMU probe), it:
+Validibot Shared provides the Pydantic models that define how the Validibot core platform communicates with advanced validator containers. When Validibot needs to run a complex validation (like an EnergyPlus™ simulation or FMU probe), it:
 
 1. **Creates an input envelope** containing the files to validate and configuration
 2. **Launches a validator container** with the envelope as input
@@ -47,7 +47,7 @@ This library ensures both sides speak the same language with full type safety an
 
 - **Type-safe envelopes** — Pydantic models with full IDE autocomplete and type checking
 - **Runtime validation** — Automatic validation of all data at serialization boundaries
-- **Domain-specific extensions** — Typed subclasses for EnergyPlus, FMU, and custom validators
+- **Domain-specific extensions** — Typed subclasses for EnergyPlus™, FMU, and custom validators
 - **Lightweight** — Only depends on Pydantic, no heavy dependencies
 
 ## Disclaimer
@@ -322,7 +322,7 @@ This library is one component of the Validibot open-source data validation platf
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus, FMU) |
+| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus™, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ### How It Fits Together
@@ -348,7 +348,7 @@ This library is one component of the Validibot open-source data validation platf
 ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
 │ validibot-cli   │    │ validibot-validators│    │ validibot-shared    │
 │                 │    │                     │    │  (this repo)        │
-│ Terminal access │    │ EnergyPlus, FMU     │    │                     │
+│ Terminal access │    │ EnergyPlus™, FMU    │    │                     │
 │ to API          │    │ containers          │    │ Pydantic models     │
 │                 │    │        │            │    │ (shared contract)   │
 └─────────────────┘    └────────┼────────────┘    └─────────────────────┘
@@ -377,6 +377,10 @@ uv run ruff check .
 # Run type checker
 uv run mypy src/
 ```
+
+## Trademarks
+
+EnergyPlus™ is a trademark of the U.S. Department of Energy. Validibot is not affiliated with, endorsed by, or sponsored by the U.S. Department of Energy or the National Renewable Energy Laboratory (NREL).
 
 ## License
 
