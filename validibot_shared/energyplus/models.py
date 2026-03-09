@@ -125,6 +125,22 @@ class EnergyPlusSimulationMetrics(BaseModel):
     # Number of thermal zones
     zone_count: NonNegInt | None = None
 
+    # ==========================================================================
+    # Window / Envelope (from EnergyPlus output variables)
+    # ==========================================================================
+    # These require the corresponding Output:Variable objects in the IDF.
+    # If absent, the values will be None.
+
+    # Total annual heat gain through windows (Surface Window Heat Gain Energy)
+    window_heat_gain_kwh: NonNegFloat | None = None
+
+    # Total annual heat loss through windows (Surface Window Heat Loss Energy)
+    window_heat_loss_kwh: NonNegFloat | None = None
+
+    # Total annual solar radiation transmitted through windows
+    # (Surface Window Transmitted Solar Radiation Energy)
+    window_transmitted_solar_kwh: NonNegFloat | None = None
+
 
 class EnergyPlusSimulationLogs(BaseModel):
     """

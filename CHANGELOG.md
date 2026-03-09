@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-10
+
+### Added
+
+- Window envelope metrics on `EnergyPlusSimulationMetrics`: `window_heat_gain_kwh`,
+  `window_heat_loss_kwh`, `window_transmitted_solar_kwh`. These are extracted from
+  EnergyPlus output variables (`Surface Window Heat Gain Energy`, etc.) and will be
+  `None` when the corresponding `Output:Variable` objects are not present in the IDF.
+
 ## [0.3.0] - 2026-02-25
 
 ### Changed
