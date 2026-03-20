@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-20
+
+### Fixed
+
+- Updated the README EnergyPlus input-envelope example to use the current
+  enum values and required `org`/`workflow` fields.
+- Corrected the documented developer test command to
+  `uv run python -m pytest` and removed the stale `mypy src/` command.
 
 ## 0.4.0
 

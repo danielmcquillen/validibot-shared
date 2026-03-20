@@ -180,18 +180,32 @@ validibot_shared/
 ```python
 from validibot_shared.energyplus import EnergyPlusInputEnvelope, EnergyPlusInputs
 from validibot_shared.validations.envelopes import (
-    InputFileItem,
-    ValidatorInfo,
     ExecutionContext,
+    InputFileItem,
+    OrganizationInfo,
+    SupportedMimeType,
+    ValidatorInfo,
+    ValidatorType,
+    WorkflowInfo,
 )
 
 envelope = EnergyPlusInputEnvelope(
     run_id="run-123",
-    validator=ValidatorInfo(id="v1", type="energyplus", version="24.2.0"),
+    validator=ValidatorInfo(
+        id="v1",
+        type=ValidatorType.ENERGYPLUS,
+        version="24.2.0",
+    ),
+    org=OrganizationInfo(id="org-123", name="Example Org"),
+    workflow=WorkflowInfo(
+        id="workflow-456",
+        step_id="step-789",
+        step_name="EnergyPlus Simulation",
+    ),
     input_files=[
         InputFileItem(
             name="model.idf",
-            mime_type="application/vnd.energyplus.idf",
+            mime_type=SupportedMimeType.ENERGYPLUS_IDF,
             role="primary-model",
             uri="gs://bucket/model.idf",
         ),
@@ -211,15 +225,16 @@ json_payload = envelope.model_dump_json()
 
 ```python
 from validibot_shared.energyplus import EnergyPlusOutputEnvelope
+from validibot_shared.validations.envelopes import ValidationStatus
 
 # Parse JSON response from validator
 envelope = EnergyPlusOutputEnvelope.model_validate_json(response_json)
 
 # Check status
-if envelope.status == "success":
+if envelope.status == ValidationStatus.SUCCESS:
     # Access typed outputs with full autocomplete
     if envelope.outputs and envelope.outputs.metrics:
-        print(f"EUI: {envelope.outputs.metrics.eui_kbtu_per_sqft} kBtu/sqft")
+        print(f"EUI: {envelope.outputs.metrics.site_eui_kwh_m2} kWh/m²")
 
 # Iterate over validation messages
 for message in envelope.messages:
@@ -369,13 +384,10 @@ cd validibot-shared
 uv sync --extra dev
 
 # Run tests
-uv run pytest
+uv run python -m pytest
 
 # Run linter
 uv run ruff check .
-
-# Run type checker
-uv run mypy src/
 ```
 
 ## Trademarks
