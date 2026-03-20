@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "validibot-shared"
-version = "0.3.1"
+version = "0.4.0"
 description = "Shared library for data interchange between Validibot and validator containers"
 readme = "README.md"
 license = { text = "MIT" }
@@ -32,15 +32,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = [
-    "pydantic>=2.8.0",
-]
+dependencies = ["pydantic>=2.8.0"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.3.0",
-    "ruff>=0.8.0",
-]
+dev = ["pytest>=8.3.0", "ruff>=0.8.0"]
 
 [project.urls]
 Homepage = "https://validibot.com"
@@ -52,12 +47,7 @@ Issues = "https://github.com/danielmcquillen/validibot-shared/issues"
 packages = ["validibot_shared"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/validibot_shared",
-    "/tests",
-    "/README.md",
-    "/LICENSE",
-]
+include = ["/validibot_shared", "/tests", "/README.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 88

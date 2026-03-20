@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## 0.4.0
+
+### Changed
+
+- **FMU envelopes**: Clarified that `input_values`, `output_variables`,
+  and `output_values` are keyed by native FMU variable names (from
+  modelDescription.xml), not internal catalog slugs. No wire format
+  change — this documents the contract that was already in practice.
+- **FMU models**: Probe results now feed into `SignalDefinition` rows
+  in the core Django app (previously documented as "catalog entries").
+- **EnergyPlus models**: `EnergyPlusSimulationMetrics` field names are
+  now documented as the canonical EnergyPlus signal names expected by
+  core Validibot, mapped to `SignalDefinition` rows.
+
 ## [0.3.1] - 2026-03-10
 
 ### Added
