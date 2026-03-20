@@ -7,9 +7,9 @@ the contract between Django and the FMU validator container:
 - Input envelope: FMU URI plus resolved input values and simulation config
 - Output envelope: FMU outputs, metrics, messages, and artifacts
 
-Inputs/outputs are keyed by validator catalog slugs. Workflow authors cannot
-remap signals; bindings live on catalog entries (input_binding_path) and
-default to slug-name lookups.
+Inputs/outputs use native FMU variable names as declared in the FMU's
+modelDescription.xml (e.g. "h" or "Temperature"). The core Django app
+resolves these names when building the envelope and when ingesting results.
 """
 
 from __future__ import annotations
@@ -54,11 +54,14 @@ class FMUSimulationConfig(BaseModel):
 
 
 class FMUInputs(BaseModel):
-    """Resolved inputs plus simulation config, keyed by catalog slugs."""
+    """Resolved inputs plus simulation config, keyed by native FMU variable names."""
 
     input_values: dict[str, Any] = Field(
         default_factory=dict,
-        description="Input values keyed by catalog slugs.",
+        description=(
+            "Input values keyed by native FMU variable "
+            "names (from modelDescription.xml)."
+        ),
     )
     simulation: FMUSimulationConfig = Field(
         default_factory=FMUSimulationConfig,
@@ -67,17 +70,21 @@ class FMUInputs(BaseModel):
     output_variables: list[str] = Field(
         default_factory=list,
         description=(
-            "Catalog slugs to capture as outputs. Empty means all output slugs."
+            "Native FMU variable names to capture as outputs. "
+            "Empty means all output variables from modelDescription.xml."
         ),
     )
 
 
 class FMUOutputs(BaseModel):
-    """FMU execution results keyed by catalog slugs."""
+    """FMU execution results keyed by native FMU variable names."""
 
     output_values: dict[str, Any] = Field(
         default_factory=dict,
-        description="Output values keyed by catalog slugs.",
+        description=(
+            "Output values keyed by native FMU variable "
+            "names (from modelDescription.xml)."
+        ),
     )
     fmu_guid: str | None = Field(default=None, description="FMU GUID, if reported.")
     fmi_version: str | None = Field(default=None, description="FMI version.")
@@ -139,11 +146,12 @@ def build_fmu_input_envelope(
         step_id: Workflow step ID
         step_name: Optional step name
         fmu_uri: FMU storage URI (gs://... or local path in dev)
-        input_values: Resolved inputs keyed by catalog slug
+        input_values: Resolved inputs keyed by native FMU variable name
         callback_url: URL to POST callback
         execution_bundle_uri: Base URI/path for this run's files
         simulation: Optional FMUSimulationConfig
-        output_variables: Optional list of catalog slugs to capture (empty=all outputs)
+        output_variables: Optional list of native FMU variable
+            names to capture (empty=all outputs)
     """
 
     input_files = [

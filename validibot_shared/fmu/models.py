@@ -2,7 +2,8 @@
 FMU probe result models.
 
 These models define the contract for FMU probing operations - extracting
-metadata from modelDescription.xml to populate validator catalog entries.
+metadata from modelDescription.xml. Probe results feed into SignalDefinition
+rows in the core Django app.
 
 Probing is done in-process in the Django worker (not in containers) since
 it's just XML parsing with no FMU execution.

@@ -48,8 +48,8 @@ class EnergyPlusSimulationMetrics(BaseModel):
     Extracted EnergyPlus simulation metrics.
 
     These are the core output signals extracted from EnergyPlus simulation results.
-    Field names here must match the binding_config["key"] values in the EnergyPlus
-    provider catalog (see validibot/validations/providers/energyplus.py).
+    Field names here are the canonical EnergyPlus signal names expected by core
+    Validibot. The core Django app maps these names to SignalDefinition rows.
 
     The validator extracts these values from the EnergyPlus SQL database
     (eplusout.sql) and they become available as output signals for assertions.
