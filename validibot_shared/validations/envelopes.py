@@ -1,13 +1,17 @@
 """
-Pydantic schemas for Advanced validator job execution envelopes.
+Pydantic schemas for validator backend execution envelopes.
 
-These schemas define the contract between Django and Advanced validator
-containers/services. Advanced validators are validations that run in separate
-containers or remote services (e.g., EnergyPlus, FMU), as opposed to Simple
-validators that run directly within Django.
+These schemas define the contract between Django-side advanced validators and
+external validator backends. In the core ``validibot`` codebase,
+``AdvancedValidator`` is the trusted Django-side class that prepares the run,
+builds the envelope, launches external work through an execution backend, and
+processes the output. A validator backend, or future ``ValidatorBackend``
+protocol, is the external implementation it delegates to, usually a container
+or cloud job. The backend receives only this envelope boundary, not the full
+Django submission, workflow, permissions, or billing state.
 
-This library is used by both the Django app and Advanced validator services to ensure
-type safety and contract consistency across the network boundary.
+This library is used by both the Django app and validator backends
+to ensure type safety and contract consistency across the execution boundary.
 
 ## Deployment Modes
 
@@ -22,11 +26,11 @@ actual storage handling is done by the validators' storage_client module.
 ## Architecture Overview
 
 This module provides a type-safe interface for communication between the Django
-app and Advanced validator containers:
+app and validator backends:
 
 **GCP Mode (async with callbacks):**
 1. Django creates input.json with files, config, callback URL
-2. Django uploads to GCS and triggers validator container
+2. Django uploads to GCS and triggers validator backend runtime
 3. Validator downloads inputs, runs validation, uploads outputs
 4. Validator POSTs minimal callback to Django when complete
 5. Django receives callback and loads full output.json from GCS
@@ -93,7 +97,7 @@ Django deserializes using the correct subclass based on validator.type.
 
 ## Why ValidationCallback?
 
-The callback is a minimal async notification sent from the validator container
+The callback is a minimal async notification sent from the validator backend
 back to the Django app when work completes. It contains only:
 - run_id: Which job finished
 - status: success/failed_validation/failed_runtime/cancelled
@@ -130,7 +134,7 @@ class Severity(str, Enum):
 
 class ValidatorType(str, Enum):
     """
-    Canonical validator types used across Django and validator containers.
+    Canonical validator types used across Django and validator backends.
 
     These values align with Django's ValidationType TextChoices and should be
     used anywhere we serialize validator identifiers in envelopes.
@@ -227,9 +231,9 @@ class ValidatorInfo(BaseModel):
     """
     Information about the validator being executed.
 
-    This identifies which validator container to run and which version.
+    This identifies which validator backend to run and which version.
     The 'type' field determines:
-    1. Which validator container to run (e.g., 'validibot-validator-energyplus')
+    1. Which validator backend to run (e.g., 'validibot-validator-backend-energyplus')
     2. Which envelope subclass Django uses for deserialization
        (EnergyPlusInputEnvelope, FMUInputEnvelope, etc.)
 
@@ -287,7 +291,7 @@ class ExecutionContext(BaseModel):
     """
     Execution context and callback information.
 
-    This provides the validator container with everything it needs to:
+    This provides the validator backend with everything it needs to:
     1. Download input files from storage (execution_bundle_uri)
     2. Upload output files to storage (execution_bundle_uri)
     3. Notify Django when complete (callback_url)
@@ -331,10 +335,10 @@ class ExecutionContext(BaseModel):
 
 class ValidationInputEnvelope(BaseModel):
     """
-    Base input envelope for validator jobs (validibot.input.v1).
+    Base input envelope for validator backend jobs (validibot.input.v1).
 
     This is written to storage as input.json by Django before triggering
-    the validator container.
+    the validator backend.
 
     ## How Subclassing Works
 
@@ -524,9 +528,9 @@ class ValidationTiming(BaseModel):
 
 class ValidationOutputEnvelope(BaseModel):
     """
-    Base output envelope for validator jobs (validibot.output.v1).
+    Base output envelope for validator backend jobs (validibot.output.v1).
 
-    This is written to storage as output.json by the validator container
+    This is written to storage as output.json by the validator backend
     after completion.
 
     ## How Subclassing Works
@@ -622,7 +626,7 @@ class ValidationOutputEnvelope(BaseModel):
 
 class ValidationCallback(BaseModel):
     """
-    Callback payload POSTed from validator container to Django.
+    Callback payload POSTed from validator backend to Django.
 
     Minimal payload to avoid duplication - Django loads the full output.json
     from storage after receiving this callback.

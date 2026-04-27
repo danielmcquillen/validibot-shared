@@ -18,7 +18,7 @@
 ---
 
 > [!NOTE]
-> This library is part of the [Validibot](https://github.com/danielmcquillen/validibot) open-source data validation platform. It defines the data interchange contract between the core platform and advanced validator containers.
+> This library is part of the [Validibot](https://github.com/danielmcquillen/validibot) open-source data validation platform. It defines the data interchange contract between the core platform and validator backends.
 
 ---
 
@@ -28,20 +28,22 @@
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus™, FMU) |
+| **[validibot-validator-backends](https://github.com/danielmcquillen/validibot-validator-backends)** | Validator backends for advanced validators (EnergyPlus™, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ---
 
 ## What is Validibot Shared?
 
-Validibot Shared provides the Pydantic models that define how the Validibot core platform communicates with advanced validator containers. When Validibot needs to run a complex validation (like an EnergyPlus™ simulation or FMU probe), it:
+Validibot Shared provides the Pydantic models that define how the Validibot core platform communicates with validator backends. When Validibot needs to run a complex validation (like an EnergyPlus™ simulation or FMU probe), it:
 
 1. **Creates an input envelope** containing the files to validate and configuration
-2. **Launches a validator container** with the envelope as input
+2. **Launches a validator backend** with the envelope as input
 3. **Receives an output envelope** with validation results, metrics, and artifacts
 
 This library ensures both sides speak the same language with full type safety and runtime validation.
+
+Terminology note: in the core `validibot` codebase, `AdvancedValidator` is the Django-side validator class that prepares and launches external work. A validator backend, or future `ValidatorBackend` protocol, is the external implementation it delegates to, usually a container or cloud job. This package defines the envelope boundary between that trusted Django-side validator and the external validator backend. The backend does not receive the full Django submission, workflow, permissions, billing, or credential state unless the parent validator intentionally includes specific data in the envelope.
 
 ## Features
 
@@ -53,7 +55,7 @@ This library ensures both sides speak the same language with full type safety an
 ## Disclaimer
 
 > [!NOTE]
-> This library defines data interchange models only — it does not process, store, or transmit user data. However, the models are used by validator containers that execute user-supplied files. See the [LICENSE](LICENSE) for full warranty disclaimer. The authors accept no liability for the behaviour of systems built using these models.
+> This library defines data interchange models only — it does not process, store, or transmit user data. However, the models are used by validator backends that execute user-supplied files. See the [LICENSE](LICENSE) for full warranty disclaimer. The authors accept no liability for the behaviour of systems built using these models.
 
 ## Installation
 
@@ -217,7 +219,7 @@ envelope = EnergyPlusInputEnvelope(
     ),
 )
 
-# Serialize to JSON for the validator container
+# Serialize to JSON for the validator backend
 json_payload = envelope.model_dump_json()
 ```
 
@@ -337,7 +339,7 @@ This library is one component of the Validibot open-source data validation platf
 |------------|-------------|
 | **[validibot](https://github.com/danielmcquillen/validibot)** | Core platform — web UI, REST API, workflow engine |
 | **[validibot-cli](https://github.com/danielmcquillen/validibot-cli)** | Command-line interface |
-| **[validibot-validators](https://github.com/danielmcquillen/validibot-validators)** | Advanced validator containers (EnergyPlus™, FMU) |
+| **[validibot-validator-backends](https://github.com/danielmcquillen/validibot-validator-backends)** | Validator backends for advanced validators (EnergyPlus™, FMU) |
 | **[validibot-shared](https://github.com/danielmcquillen/validibot-shared)** (this repo) | Shared Pydantic models for data interchange |
 
 ### How It Fits Together
@@ -360,13 +362,13 @@ This library is one component of the Validibot open-source data validation platf
                                     │
          ┌──────────────────────────┼──────────────────────────┐
          ▼                          ▼                          ▼
-┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│ validibot-cli   │    │ validibot-validators│    │ validibot-shared    │
-│                 │    │                     │    │  (this repo)        │
-│ Terminal access │    │ EnergyPlus™, FMU    │    │                     │
-│ to API          │    │ containers          │    │ Pydantic models     │
-│                 │    │        │            │    │ (shared contract)   │
-└─────────────────┘    └────────┼────────────┘    └─────────────────────┘
+┌─────────────────┐    ┌──────────────────────────────┐    ┌─────────────────────┐
+│ validibot-cli   │    │ validibot-validator-backends │    │ validibot-shared    │
+│                 │    │                              │    │  (this repo)        │
+│ Terminal access │    │ EnergyPlus™, FMU             │    │                     │
+│ to API          │    │ containers                   │    │ Pydantic models     │
+│                 │    │              │               │    │ (shared contract)   │
+└─────────────────┘    └──────────────┼───────────────┘    └─────────────────────┘
                                 │                          ▲
                                 └──────────────────────────┘
                                    validators import shared

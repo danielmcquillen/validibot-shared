@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "validibot-shared"
-version = "0.4.2"
+version = "0.4.3"
 description = "Shared library for data interchange between Validibot and validator containers"
 readme = "README.md"
 license = { text = "MIT" }
@@ -32,7 +32,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = ["pydantic==2.12.3"]
+dependencies = ["pydantic==2.13.1"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.0.2", "ruff==0.14.8"]
