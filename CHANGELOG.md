@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-02
+
+### Changed
+
+- Loosened the `pydantic` dependency from the strict `==2.13.3` pin
+  to a `>=2.13,<3` range. Strict pins on shared-library dependencies
+  break universal resolution for downstream projects whose
+  `requires-python` window extends past pydantic's classifier
+  range. Libraries should pin a band, not a point.
+
 ## [0.5.0] - 2026-05-02
 
 ### Added
