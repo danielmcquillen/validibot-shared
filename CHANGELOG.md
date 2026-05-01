@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-02
+
+### Added
+
+- ``validibot_shared.evidence`` module exposing the
+  ``validibot.evidence.v1`` Pydantic schema for run-completion
+  evidence manifests. Public symbols: ``EvidenceManifest``,
+  ``WorkflowContractSnapshot``, ``StepValidatorRecord``,
+  ``ManifestRetentionInfo``, ``ManifestPayloadDigests``,
+  ``SCHEMA_VERSION``. Lives in shared so external verifiers can
+  depend on a single PyPI package without pulling in the Django
+  application stack. See ADR-2026-04-27 (Validibot Trust ADR),
+  Phase 4 Session A.
+
 ## [0.4.4] - 2026-03-25
 
 ### Changed
