@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-02
+
+### Added
+
+- ``StepValidatorRecord.validator_backend_image_digest``: optional
+  field carrying the resolved sha256 digest of the validator backend
+  container image that executed each step (e.g. ``sha256:abc...`` or
+  ``registry/...@sha256:abc...``). Complements the existing
+  ``validator_semantic_digest`` field — one describes the validator's
+  *configuration*, the other describes the *image bytes that ran*.
+  Optional because (a) simple-validator steps run inline without a
+  backend, and (b) historical step runs predate the field. Producers
+  source the value from a new ``ValidationStepRun.validator_backend_image_digest``
+  column populated at execution time (Docker SDK ``RepoDigests`` for
+  local runs; Cloud Run Execution metadata for hosted runs). The
+  schema-version string stays ``validibot.evidence.v1`` because the
+  change is additive — verifiers running an older shared version
+  silently ignore the unknown key. ADR-2026-04-27 Trust ADR Phase 5
+  Session A.
+
+### Why this is a minor bump (not patch)
+
+Optional additive fields are technically backwards-compatible at
+parse time (an old verifier sees an extra key it ignores), but they
+*do* extend the public surface — a verifier built against 0.7.0 can
+expect the field to exist on records produced by ≥0.7.0 manifests.
+Per the project's pre-1.0 SemVer practice, additive surface changes
+get a minor bump so downstream consumers' resolvers can express
+"I need a producer that emits this field" via ``>=0.7.0`` constraints.
+
 ## [0.6.0] - 2026-05-02
 
 ### Changed (BREAKING)

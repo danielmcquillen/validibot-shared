@@ -89,6 +89,25 @@ class StepValidatorRecord(BaseModel):
             "verifiers know to expect a legacy-versioning gap there."
         ),
     )
+    # Trust ADR Phase 5 Session A — the *runtime* identity of the
+    # validator backend container that actually executed this step.
+    # ``validator_semantic_digest`` describes the validator's
+    # *configuration* (slug, version, config bytes); this field
+    # describes the *image bytes* that ran. The two are
+    # complementary: one proves "the validator was configured this
+    # way", the other proves "this exact container ran". Optional
+    # because (a) simple-validator steps run inline without a
+    # backend, and (b) historical step runs predate the field.
+    validator_backend_image_digest: str | None = Field(
+        default=None,
+        description=(
+            "Resolved sha256 digest of the validator backend image "
+            "that executed this step (e.g. 'sha256:abc...' or "
+            "'registry/...@sha256:abc...'). None for simple-validator "
+            "steps that run inline without a container, or for runs "
+            "captured before digest capture shipped."
+        ),
+    )
 
 
 class WorkflowContractSnapshot(BaseModel):
