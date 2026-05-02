@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-03
+
 ### Added
 
 - CycloneDX SBOM generation in the publish workflow (Trust ADR
@@ -17,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``attestations: true``, this gives downstream operators two
   independent layers of provenance: "did this come from where I
   think?" (OIDC) plus "what's inside it?" (SBOM).
+- Signed-tag release flow via ``just release X.Y.Z``. The recipe
+  enforces preconditions (clean working tree, on ``main``, version
+  bumped, tag doesn't already exist) and signs the tag with the
+  maintainer's SSH key before pushing. The ``.allowed_signers``
+  file in the repo root carries the maintainer's public key so
+  ``git verify-tag`` works out of the box for downstream operators.
 
 ## [0.7.0] - 2026-05-02
 
