@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-05-03
+
+### Fixed
+
+- PyPI OIDC build attestations are now correctly generated and
+  recorded against published wheels. The 0.7.2 release published
+  successfully but PyPI's trusted-publisher binding was missing
+  the workflow filename, so PyPI couldn't match the OIDC token's
+  ``workflow_ref`` claim and skipped attestation generation. The
+  binding has been corrected on PyPI's side; this release verifies
+  the fix end-to-end. No library code changes between 0.7.2 and
+  0.7.3 — only the upstream PyPI configuration.
+
+### Note on 0.7.2
+
+0.7.2 is on PyPI and functionally equivalent to 0.7.3, but lacks
+the OIDC attestation in PyPI's provenance UI because the
+trusted-publisher binding was incomplete at upload time. PyPI
+doesn't allow re-attestation of already-uploaded files, so 0.7.2
+will permanently show no provenance link. Operators who care about
+the PyPI-side attestation should use 0.7.3 or later.
+
 ## [0.7.2] - 2026-05-03
 
 ### Fixed
