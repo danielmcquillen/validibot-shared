@@ -105,7 +105,14 @@ class WorkflowContractSnapshot(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     allowed_file_types: list[str] = Field(default_factory=list)
-    data_retention: str = ""
+    # ``input_retention`` was named ``data_retention`` in shared
+    # 0.5.x. The rename (shared 0.6.0+) makes the parallel with
+    # ``output_retention`` obvious — both fields carry the workflow
+    # author's retention choices, one for the user's input bytes and
+    # one for the validator's output bytes. The schema-version
+    # string stays ``validibot.evidence.v1`` because the field's
+    # semantics are unchanged; only the name is clearer.
+    input_retention: str = ""
     output_retention: str = ""
     agent_billing_mode: str = ""
     agent_price_cents: int | None = None

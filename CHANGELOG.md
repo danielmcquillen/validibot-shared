@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-02
+
+### Changed (BREAKING)
+
+- ``WorkflowContractSnapshot.data_retention`` renamed to
+  ``input_retention``. Mirrors the existing ``output_retention``
+  field name and removes the long-running ambiguity ("data" could
+  mean input or output) that caused real reasoning bugs in
+  consuming code. The rename is *clarification only* — same
+  retention values, same enforcement behaviour. The schema-version
+  string stays ``validibot.evidence.v1`` because no semantic
+  property changed; only the field name is clearer.
+- Consumers reading manifests produced by this version see
+  ``input_retention`` instead of ``data_retention``. There are no
+  external consumers yet (Phase 4 of the Validibot Trust ADR
+  hasn't shipped publicly), so the rename is safe to land before
+  any verifier writes to the field name.
+
 ## [0.5.1] - 2026-05-02
 
 ### Changed
