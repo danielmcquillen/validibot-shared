@@ -76,8 +76,13 @@ release VERSION:
 
     echo "Releasing v{{VERSION}}..."
 
-    # Create and push tag
-    git tag "v{{VERSION}}"
+    # Sign the tag. The publish workflow doesn't currently enforce
+    # signature verification (PyPI's OIDC attestation is the primary
+    # integrity check), but a signed tag adds a maintainer-attested
+    # layer that operators reading the GitHub release page can
+    # verify with `git verify-tag`. Requires
+    # `git config --global tag.gpgsign true` and a signing key.
+    git tag -s "v{{VERSION}}" -m "v{{VERSION}}"
     git push origin "v{{VERSION}}"
 
     # Create GitHub release (triggers PyPI publish via Actions)
