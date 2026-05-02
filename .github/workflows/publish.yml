@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a  # v7.4.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           version: "0.5.16"
 
@@ -77,7 +77,7 @@ jobs:
             --output-file dist/validibot-shared.cdx.xml
 
       - name: Upload SBOM as workflow artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: validibot-shared-sbom
           path: |
@@ -103,7 +103,7 @@ jobs:
             --clobber
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         with:
           # OIDC build attestation — PyPI records a sigstore-style
           # attestation linking the wheel hash to this GitHub Actions
