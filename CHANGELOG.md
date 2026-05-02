@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-05-03
+
+### Fixed
+
+- Publish workflow no longer collides with twine's pre-flight check.
+  In 0.7.1 the CycloneDX SBOMs were generated into ``dist/``
+  alongside the wheel; ``pypa/gh-action-pypi-publish`` treats every
+  file in ``dist/`` as a candidate for PyPI upload and rejected the
+  ``.cdx.json`` / ``.cdx.xml`` files as ``InvalidDistribution``,
+  failing the publish step before the wheel reached PyPI. SBOMs now
+  generate into ``sbom/`` so PyPI publish only sees wheels.
+
+### Note on 0.7.1
+
+0.7.1 was tagged and a GitHub release was created, but the wheel did
+NOT reach PyPI due to the workflow bug fixed above. The 0.7.1 git
+tag remains as a record of the failed release attempt; the v0.7.1
+GitHub release retains the SBOM artifacts that were generated before
+the publish step failed. Use 0.7.2 for the actual release content
+(no library code changed between 0.7.1 and 0.7.2 — only the
+workflow).
+
 ## [0.7.1] - 2026-05-03
 
 ### Added

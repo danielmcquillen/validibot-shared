@@ -64,25 +64,34 @@ jobs:
       # against the resolved dependency tree. ``cyclonedx-py`` ships
       # under the ``cyclonedx-bom`` PyPI distribution; we invoke it
       # via ``uvx`` so it runs in an isolated environment.
+      #
+      # SBOMs go in ``sbom/`` (not ``dist/``) on purpose. Twine's
+      # pre-flight check inside ``pypa/gh-action-pypi-publish``
+      # treats every file in ``dist/`` as a candidate for upload to
+      # PyPI and rejects ``.cdx.json`` / ``.cdx.xml`` as
+      # ``InvalidDistribution`` — which fails the publish step
+      # before the wheel ever reaches PyPI. Keeping SBOMs in their
+      # own directory avoids the collision.
       - name: Generate CycloneDX SBOM (JSON)
         run: |
+          mkdir -p sbom
           uvx --from cyclonedx-bom cyclonedx-py environment \
             --output-format JSON \
-            --output-file dist/validibot-shared.cdx.json
+            --output-file sbom/validibot-shared.cdx.json
 
       - name: Generate CycloneDX SBOM (XML)
         run: |
           uvx --from cyclonedx-bom cyclonedx-py environment \
             --output-format XML \
-            --output-file dist/validibot-shared.cdx.xml
+            --output-file sbom/validibot-shared.cdx.xml
 
       - name: Upload SBOM as workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: validibot-shared-sbom
           path: |
-            dist/validibot-shared.cdx.json
-            dist/validibot-shared.cdx.xml
+            sbom/validibot-shared.cdx.json
+            sbom/validibot-shared.cdx.xml
           retention-days: 90
 
       # Attach the SBOM to the GitHub Release so it appears alongside
@@ -97,8 +106,8 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           gh release upload "$RELEASE_TAG" \
-            dist/validibot-shared.cdx.json \
-            dist/validibot-shared.cdx.xml \
+            sbom/validibot-shared.cdx.json \
+            sbom/validibot-shared.cdx.xml \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
 
