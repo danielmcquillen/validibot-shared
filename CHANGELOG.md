@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CycloneDX SBOM generation in the publish workflow (Trust ADR
+  Phase 5 Session D). Each release uploads ``validibot-shared.cdx.json``
+  and ``validibot-shared.cdx.xml`` as workflow artifacts and
+  attaches them to the GitHub Release alongside the wheel. Combined
+  with the OIDC build attestation that PyPI already records via
+  ``attestations: true``, this gives downstream operators two
+  independent layers of provenance: "did this come from where I
+  think?" (OIDC) plus "what's inside it?" (SBOM).
+
 ## [0.7.0] - 2026-05-02
 
 ### Added

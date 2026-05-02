@@ -1,3 +1,24 @@
+# Trust ADR Phase 5 Session D — Release workflow for validibot-shared.
+#
+# Publishes the wheel to PyPI with two layers of supply-chain provenance:
+#
+# 1. **OIDC build attestation** (``attestations: true`` on
+#    ``pypa/gh-action-pypi-publish``). PyPI records a sigstore-style
+#    attestation linking the wheel hash to *this exact* GitHub Actions
+#    run, signed via PyPI's trusted-publishing OIDC flow. Verifiers
+#    reading the wheel from PyPI can confirm "yes, this came from the
+#    Validibot CI on commit X."
+#
+# 2. **CycloneDX SBOM** of the package's resolved dependency tree,
+#    generated at build time and attached to the GitHub Release as a
+#    downloadable artifact. Operators auditing dependency chains can
+#    grab the SBOM from the release page without checking out source.
+#
+# Why both? OIDC attestation proves *who built it*; the SBOM
+# documents *what's inside it*. Together they answer "did this come
+# from where I think, and what does it carry?" — the two questions
+# a downstream operator's auditor cares about.
+
 name: Publish to PyPI
 
 on:
@@ -5,31 +26,87 @@ on:
     types: [published]
 
 permissions:
-  id-token: write  # Required for trusted publishing
+  contents: read
 
 jobs:
   publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
+
+    permissions:
+      # Required for trusted publishing (OIDC token to PyPI).
+      id-token: write
+      # Required so the SBOM upload step can attach to the release.
+      contents: write
+
     environment:
       name: pypi
       url: https://pypi.org/project/validibot-shared/
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a # v7.4.0
+        uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a  # v7.4.0
         with:
           version: "0.5.16"
 
       - name: Set up Python
         run: uv python install 3.13
 
+      - name: Install project (so cyclonedx can introspect it)
+        run: uv sync
+
       - name: Build package
         run: uv build
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+      # Trust ADR Phase 5 Session D — generate a CycloneDX SBOM
+      # against the resolved dependency tree. ``cyclonedx-py`` ships
+      # under the ``cyclonedx-bom`` PyPI distribution; we invoke it
+      # via ``uvx`` so it runs in an isolated environment.
+      - name: Generate CycloneDX SBOM (JSON)
+        run: |
+          uvx --from cyclonedx-bom cyclonedx-py environment \
+            --output-format JSON \
+            --output-file dist/validibot-shared.cdx.json
+
+      - name: Generate CycloneDX SBOM (XML)
+        run: |
+          uvx --from cyclonedx-bom cyclonedx-py environment \
+            --output-format XML \
+            --output-file dist/validibot-shared.cdx.xml
+
+      - name: Upload SBOM as workflow artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
         with:
+          name: validibot-shared-sbom
+          path: |
+            dist/validibot-shared.cdx.json
+            dist/validibot-shared.cdx.xml
+          retention-days: 90
+
+      # Attach the SBOM to the GitHub Release so it appears alongside
+      # the wheel on the release's downloads page. We bind
+      # ``RELEASE_TAG`` via env (rather than interpolating directly
+      # into the run script) — the recommended pattern for any
+      # untrusted GitHub event input, even though release tag names
+      # are server-validated.
+      - name: Attach SBOM to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            dist/validibot-shared.cdx.json \
+            dist/validibot-shared.cdx.xml \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        with:
+          # OIDC build attestation — PyPI records a sigstore-style
+          # attestation linking the wheel hash to this GitHub Actions
+          # run. Verifiers can pull the attestation via PyPI's API and
+          # confirm "yes, this came from this CI run."
           attestations: true

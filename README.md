@@ -7,6 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
 [![Python versions](https://img.shields.io/pypi/pyversions/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![OIDC attestation](https://img.shields.io/badge/PyPI%20attestations-enabled-2da44e.svg)](https://docs.pypi.org/attestations/)
 
 [Installation](#installation) •
 [Core Concepts](#core-concepts) •
