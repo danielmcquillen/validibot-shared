@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-05-03
+
+### Added
+
+- ``EvidenceManifest.source`` (optional, default ``None``): documents
+  which auth channel produced the run. One of ``LAUNCH_PAGE``,
+  ``API``, ``MCP``, ``X402_AGENT``, ``CLI``, ``SCHEDULE``. Producers
+  MUST derive this from the authenticated route, NEVER from a
+  caller-controlled header (Trust ADR P1 #4 + P2 #2). Older producers
+  and producers that don't track source leave the field ``None``.
+
+### Schema-version contract
+
+This change is purely additive — adding an optional field with a
+default. Per the schema-versioning policy in
+``validibot_shared/evidence/manifest.py``, additive changes preserve
+``v1``. Verifiers reading manifests written by 0.7.4+ producers will
+see the new field, while manifests written by 0.7.3- producers will
+omit it (Pydantic's default kicks in on parse).
+
 ## [0.7.3] - 2026-05-03
 
 ### Fixed

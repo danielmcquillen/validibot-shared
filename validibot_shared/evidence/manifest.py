@@ -251,6 +251,27 @@ class EvidenceManifest(BaseModel):
         default_factory=ManifestPayloadDigests,
         description="Session A: empty. Session B: input + output hashes.",
     )
+    # Trust ADR-2026-04-27 + 2026-05-03 review (P2 #2): the auth
+    # channel that initiated the run.  Pinning it in the manifest
+    # lets verifiers answer "what surface produced this run?" without
+    # consulting the producer database (the run row may be purged
+    # under DO_NOT_STORE retention).  Optional because (a) older
+    # producers persist runs without populating ``source``, and
+    # (b) the field is additive — a missing value preserves the v1
+    # schema-version contract.  Producers MUST derive this from the
+    # authenticated route, NEVER from a caller-controlled header
+    # (see Trust ADR P1 #4).
+    source: str | None = Field(
+        default=None,
+        description=(
+            "Run source identifier — one of LAUNCH_PAGE, API, MCP, "
+            "X402_AGENT, CLI, SCHEDULE.  Derived from the "
+            "authenticated route on the producer side and propagated "
+            "into the manifest verbatim.  None when the run was "
+            "captured before P2 #2 shipped or by a producer that does "
+            "not yet emit the field."
+        ),
+    )
 
 
 __all__ = [
