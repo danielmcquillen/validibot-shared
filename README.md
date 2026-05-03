@@ -2,7 +2,7 @@
 
 # Validibot Shared
 
-**Shared Pydantic models for Validibot validator backend containers**
+**Shared Pydantic models for Validibot validator backends**
 
 [![PyPI version](https://badge.fury.io/py/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
 [![Python versions](https://img.shields.io/pypi/pyversions/validibot-shared.svg)](https://pypi.org/project/validibot-shared/)
@@ -74,7 +74,7 @@ poetry add validibot-shared
 ### Requirements
 
 - Python 3.10 or later
-- Pydantic 2.8.0 or later
+- Pydantic 2.13 or later (< 3.0)
 
 ## Core Concepts
 
@@ -100,7 +100,7 @@ Validibot uses an "envelope" pattern for validator communication. Every validati
                               │
                               ▼ JSON
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Validator Container                          │
+│                  Validator Backend Container                    │
 │                    (EnergyPlus, FMU, etc.)                      │
 │                                                                 │
 │  1. Parses input envelope                                       │
@@ -367,13 +367,13 @@ This library is one component of the Validibot open-source data validation platf
 │ validibot-cli   │    │ validibot-validator-backends │    │ validibot-shared    │
 │                 │    │                              │    │  (this repo)        │
 │ Terminal access │    │ EnergyPlus™, FMU             │    │                     │
-│ to API          │    │ containers                   │    │ Pydantic models     │
+│ to API          │    │ validator backends           │    │ Pydantic models     │
 │                 │    │              │               │    │ (shared contract)   │
 └─────────────────┘    └──────────────┼───────────────┘    └─────────────────────┘
                                 │                          ▲
                                 └──────────────────────────┘
-                                   validators import shared
-                                   models for type safety
+                                  backends import shared
+                                  models for type safety
 ```
 
 ## Development
