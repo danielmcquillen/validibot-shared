@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which auth channel produced the run. One of ``LAUNCH_PAGE``,
   ``API``, ``MCP``, ``X402_AGENT``, ``CLI``, ``SCHEDULE``. Producers
   MUST derive this from the authenticated route, NEVER from a
-  caller-controlled header (Trust ADR P1 #4 + P2 #2). Older producers
-  and producers that don't track source leave the field ``None``.
+  caller-controlled header. Older producers and producers that don't
+  track source leave the field ``None``.
 
 ### Schema-version contract
 

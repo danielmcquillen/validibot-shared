@@ -131,13 +131,13 @@ class TestOptionalFields:
         manifest = EvidenceManifest(**_minimal_manifest_kwargs())
         assert manifest.steps == []
 
-    # ── Trust ADR P2 #2 (2026-05-03 review): manifest source field ──
+    # ── Manifest source field ───────────────────────────────────
     #
     # ``source`` documents which auth channel produced the run.  It's
     # additive and optional — older producers set None, newer
     # producers populate it from the authenticated route (NOT from a
-    # client header, see P1 #4).  The schema-version contract still
-    # reads ``v1`` because the change is purely additive.
+    # client header).  The schema-version contract still reads ``v1``
+    # because the change is purely additive.
     def test_source_defaults_to_none(self):
         """Older producers and producers that don't track source leave it None."""
         manifest = EvidenceManifest(**_minimal_manifest_kwargs())

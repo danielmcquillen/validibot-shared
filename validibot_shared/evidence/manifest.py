@@ -251,16 +251,15 @@ class EvidenceManifest(BaseModel):
         default_factory=ManifestPayloadDigests,
         description="Session A: empty. Session B: input + output hashes.",
     )
-    # Trust ADR-2026-04-27 + 2026-05-03 review (P2 #2): the auth
-    # channel that initiated the run.  Pinning it in the manifest
-    # lets verifiers answer "what surface produced this run?" without
-    # consulting the producer database (the run row may be purged
-    # under DO_NOT_STORE retention).  Optional because (a) older
-    # producers persist runs without populating ``source``, and
-    # (b) the field is additive — a missing value preserves the v1
-    # schema-version contract.  Producers MUST derive this from the
-    # authenticated route, NEVER from a caller-controlled header
-    # (see Trust ADR P1 #4).
+    # The auth channel that initiated the run.  Pinning it in the
+    # manifest lets verifiers answer "what surface produced this
+    # run?" without consulting the producer database (the run row
+    # may be purged under DO_NOT_STORE retention).  Optional because
+    # (a) older producers persist runs without populating
+    # ``source``, and (b) the field is additive — a missing value
+    # preserves the v1 schema-version contract.  Producers MUST
+    # derive this from the authenticated route, NEVER from a
+    # caller-controlled header.
     source: str | None = Field(
         default=None,
         description=(
