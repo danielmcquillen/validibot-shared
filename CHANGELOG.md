@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-23
+
+### Changed (breaking)
+
+- ``EnergyPlusSimulationMetrics`` no longer carries ``zone_count``.
+  Per ADR-2026-05-22's provenance rule, IDF-text-derived facts (zone
+  count, version, north axis) are step **inputs** populated by the
+  validator's parser, not step outputs. They live in the ``i.*`` CEL
+  namespace, not in this output envelope. Consumers that read
+  ``zone_count`` from an envelope must migrate to reading
+  ``i.zone_count`` in their assertions (or
+  ``run.summary["steps"][key]["input"]["zone_count"]`` for direct
+  introspection).
+- ``EnergyPlusSimulationMetrics.floor_area_m2`` renamed to
+  ``simulated_conditioned_area_m2``. The new name disambiguates the
+  value from any "floor area" the IDF declares as input — this field
+  is the conditioned area EnergyPlus actually simulated, which may
+  differ from the design area an author supplied. Producers MUST
+  populate the new field name; consumers reading the old name will
+  see ``None``.
+
+### Schema-version contract
+
+These are removals/renames, not additive changes. Per the
+schema-versioning policy in
+``validibot_shared/evidence/manifest.py``, removals bump the major
+version of the field's schema. The envelope itself stays on its
+existing schema version because the changes are confined to the
+``metrics`` sub-model; consumers that need backward compatibility
+should pin to ``validibot-shared<0.8.0`` until they migrate.
+
 ## [0.7.4] - 2026-05-03
 
 ### Added

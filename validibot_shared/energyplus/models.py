@@ -116,14 +116,22 @@ class EnergyPlusSimulationMetrics(BaseModel):
     peak_electric_demand_w: NonNegFloat | None = None
 
     # ==========================================================================
-    # Building Characteristics (from IDF/SQL)
+    # Building Characteristics (simulation-derived)
+    #
+    # Per ADR-2026-05-22 (provenance rule): only simulation-derived metrics
+    # belong here. IDF-text-derived facts (idf_version, zone_count,
+    # north_axis_deg) are step inputs populated by the validator's parser
+    # and live in the i.* CEL namespace, not in this output envelope.
     # ==========================================================================
 
-    # Total conditioned floor area
-    floor_area_m2: NonNegFloat | None = None
-
-    # Number of thermal zones
-    zone_count: NonNegInt | None = None
+    # Total conditioned floor area as computed by EnergyPlus from the
+    # geometry — the area EnergyPlus actually simulates conditioning
+    # for, which may differ from the design floor area input the
+    # author supplied. The name says "simulated" + "conditioned" to
+    # distinguish it from inputs the IDF declares; per ADR-2026-05-22
+    # the rename from the legacy ``floor_area_m2`` lands with this
+    # shared-package release.
+    simulated_conditioned_area_m2: NonNegFloat | None = None
 
     # ==========================================================================
     # Window / Envelope (from EnergyPlus output variables)
