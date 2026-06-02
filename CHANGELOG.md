@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-02
+
+### Added
+
+- SHACL Advanced validator envelopes (``validibot_shared/shacl/``):
+  ``SHACLInputEnvelope`` / ``SHACLInputs``, ``SHACLOutputEnvelope`` /
+  ``SHACLOutputs``, ``SHACLSparqlAssertionSpec``, and the
+  ``build_shacl_input_envelope`` helper. These define the contract for running
+  SHACL validation in an isolated container backend instead of in-process in the
+  Django worker — the container is the only place untrusted RDF parsing and
+  author-supplied SPARQL (SHACL-AF constraints + SPARQL-ASK assertions) execute.
+- ``ValidatorType.SHACL``.
+- RDF MIME types on ``SupportedMimeType`` (``RDF_TURTLE``, ``RDF_XML``,
+  ``RDF_JSON_LD``, ``RDF_N_TRIPLES``, ``RDF_N_QUADS``) so an RDF submission can
+  ride the typed ``InputFileItem.mime_type`` field.
+
+These are purely additive — no existing schema changed.
+
 ## [0.8.0] - 2026-05-23
 
 ### Changed (breaking)
@@ -197,13 +215,13 @@ get a minor bump so downstream consumers' resolvers can express
 
 ### Changed
 
-- Updated dependencies. 
+- Updated dependencies.
 
 ## [0.4.3] - 2026-03-25
 
 ### Changed
 
-- Updated dependencies. 
+- Updated dependencies.
 - Renaming validibot-validators project.
 
 ## [0.4.2] - 2026-03-25

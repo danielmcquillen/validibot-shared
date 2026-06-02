@@ -16,6 +16,13 @@ from validibot_shared.evidence import (
     WorkflowContractSnapshot,
 )
 from validibot_shared.fmu.models import FMUProbeResult, FMUVariableMeta
+from validibot_shared.shacl.envelopes import (
+    SHACLInputEnvelope,
+    SHACLInputs,
+    SHACLOutputEnvelope,
+    SHACLOutputs,
+    SHACLSparqlAssertionSpec,
+)
 
 __all__ = [
     "EVIDENCE_SCHEMA_VERSION",
@@ -27,6 +34,11 @@ __all__ = [
     "FMUVariableMeta",
     "ManifestPayloadDigests",
     "ManifestRetentionInfo",
+    "SHACLInputEnvelope",
+    "SHACLInputs",
+    "SHACLOutputEnvelope",
+    "SHACLOutputs",
+    "SHACLSparqlAssertionSpec",
     "StepValidatorRecord",
     "WorkflowContractSnapshot",
 ]

@@ -143,6 +143,7 @@ class ValidatorType(str, Enum):
     BASIC = "BASIC"
     JSON_SCHEMA = "JSON_SCHEMA"
     XML_SCHEMA = "XML_SCHEMA"
+    SHACL = "SHACL"
     ENERGYPLUS = "ENERGYPLUS"
     FMU = "FMU"
     CUSTOM_VALIDATOR = "CUSTOM_VALIDATOR"
@@ -172,6 +173,16 @@ class SupportedMimeType(str, Enum):
 
     # FMU files
     FMU = "application/vnd.fmi.fmu"  # Functional Mock-up Unit
+
+    # RDF serializations (SHACL validator). The concrete parse format is
+    # carried by SHACLInputs.submission_format; these MIME types let the RDF
+    # submission ride the typed InputFileItem.mime_type field like any other
+    # validator input.
+    RDF_TURTLE = "text/turtle"
+    RDF_XML = "application/rdf+xml"
+    RDF_JSON_LD = "application/ld+json"
+    RDF_N_TRIPLES = "application/n-triples"
+    RDF_N_QUADS = "application/n-quads"
 
 
 class InputFileItem(BaseModel):
