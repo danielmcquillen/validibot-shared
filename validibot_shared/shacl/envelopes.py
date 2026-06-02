@@ -71,8 +71,7 @@ class SHACLSparqlAssertionSpec(BaseModel):
     severity: str = Field(
         default="ERROR",
         description=(
-            "Validibot severity emitted on a "
-            "false answer (ERROR/WARNING/INFO)."
+            "Validibot severity emitted on a false answer (ERROR/WARNING/INFO)."
         ),
     )
     description: str = Field(default="", description="Human-readable label.")
