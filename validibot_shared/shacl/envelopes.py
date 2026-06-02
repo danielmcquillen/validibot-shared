@@ -71,8 +71,8 @@ class SHACLSparqlAssertionSpec(BaseModel):
     severity: str = Field(
         default="ERROR",
         description=(
-            "Validibot severity emitted on a ",
-            "false answer (ERROR/WARNING/INFO).",
+            "Validibot severity emitted on a "
+            "false answer (ERROR/WARNING/INFO)."
         ),
     )
     description: str = Field(default="", description="Human-readable label.")
@@ -163,7 +163,7 @@ class SHACLInputs(BaseModel):
 
 class SHACLFinding(BaseModel):
     """One SHACL finding with the full detail Django
-    needs to rebuild a ``ValidationIssue``.
+    gneeds to rebuild a ``ValidationIssue``.
 
     The generic ``ValidationMessage`` on the output envelope is lossy — it has no
     ``meta`` (SHACL focus node / source shape / constraint component) and no
