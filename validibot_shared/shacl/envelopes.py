@@ -154,7 +154,12 @@ class SHACLInputs(BaseModel):
     max_shape_triples: int = Field(default=50_000, gt=0)
     max_ontology_triples: int = Field(default=100_000, gt=0)
     max_validation_depth: int = Field(default=25, gt=0)
-    pyshacl_timeout_seconds: int = Field(default=30, gt=0)
+    # Mirror the producer-side defaults so a direct/shared-envelope consumer
+    # (or a test) that doesn't set these explicitly behaves like a real launch.
+    # Django (validations/.../shacl/launch.py) and the container backend
+    # (validibot-validator-backends shacl/engine.py) both default pySHACL to
+    # 300s (hard cap 1800s) and SPARQL-ASK to 10s; this contract must not lag.
+    pyshacl_timeout_seconds: int = Field(default=300, gt=0)
     sparql_query_timeout_seconds: int = Field(default=10, gt=0)
 
     model_config = {"extra": "forbid"}
