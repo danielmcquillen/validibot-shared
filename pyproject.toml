@@ -37,7 +37,7 @@ classifiers = [
 dependencies = ["pydantic>=2.13,<3.0"]
 
 [project.optional-dependencies]
-dev = ["pytest==9.0.3", "ruff==0.15.15"]
+dev = ["pytest==9.0.3", "ruff==0.15.16"]
 
 [project.urls]
 Homepage = "https://validibot.com"
