@@ -49,7 +49,7 @@ file in the export bundle.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -110,6 +110,44 @@ class StepValidatorRecord(BaseModel):
     )
 
 
+class ContractConstant(BaseModel):
+    """A workflow Constant (the ``c.*`` namespace) recorded in the contract.
+
+    A Constant (ADR-2026-06-18) is a workflow-defined *fixed literal*, so its
+    name **and value** are always safe to publish in the contract snapshot —
+    unlike a resolved ``s.*`` signal value, which is submission-derived and must
+    stay in the retention-gated run record. ``value`` is the stored form: a
+    canonical decimal *string* for NUMBER (so ``"0.40"`` keeps its precision), a
+    ``str`` for STRING, a ``bool`` for BOOLEAN, and a ``list``/``dict`` for
+    LIST/OBJECT.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    data_type: str = ""
+    value: Any = None
+
+
+class ContractSignalMapping(BaseModel):
+    """A workflow signal-mapping *definition* recorded in the contract.
+
+    The workflow-defined config for an ``s.<name>`` signal — NOT its resolved
+    runtime value. Publishing the definition (how the signal is sourced) is safe
+    and lets a verifier see the contract; the *resolved* value is
+    submission-derived and belongs only in the retention-gated run record
+    (ADR-2026-06-18).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    source_path: str = ""
+    on_missing: str = ""
+    default_value: Any = None
+    data_type: str = ""
+
+
 class WorkflowContractSnapshot(BaseModel):
     """Frozen snapshot of the workflow's launch-contract fields.
 
@@ -138,6 +176,38 @@ class WorkflowContractSnapshot(BaseModel):
     agent_max_launches_per_hour: int | None = None
     agent_public_discovery: bool = False
     agent_access_enabled: bool = False
+
+    # ── Workflow contract primitives (ADR-2026-06-18) ────────────────────────
+    # Additive, optional fields — the schema stays ``validibot.evidence.v1``
+    # (additive changes preserve v1 by the policy documented at the top of this
+    # module; a bump would be wrong here). Producers that predate this change
+    # simply leave them empty, and older consumers ignore unknown-to-them fields.
+    constants: list[ContractConstant] = Field(
+        default_factory=list,
+        description=(
+            "Workflow Constants (c.* namespace) with their fixed values — the "
+            "named thresholds this run was judged against. Empty for workflows "
+            "with no constants or for producers predating this field."
+        ),
+    )
+    signal_mappings: list[ContractSignalMapping] = Field(
+        default_factory=list,
+        description=(
+            "Workflow signal-mapping DEFINITIONS (name + source_path + "
+            "on_missing + default + type) — never resolved s.* runtime values, "
+            "which are submission-derived and retention-gated."
+        ),
+    )
+    workflow_definition_hash: str = Field(
+        default="",
+        description=(
+            "The workflow-definition digest (e.g. 'sha256:...') covering the "
+            "semantic contract — constants, signal-mapping definitions, and "
+            "per-step validator + effective-ruleset + assertions. Lets a "
+            "verifier confirm the run's contract matches a claimed version. "
+            "Empty for producers predating this field."
+        ),
+    )
 
 
 class ManifestRetentionInfo(BaseModel):

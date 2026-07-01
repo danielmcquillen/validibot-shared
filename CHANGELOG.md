@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-07-01
+
+### Added
+
+- `WorkflowContractSnapshot` gains three additive, optional fields for the
+  Constants primitive (ADR-2026-06-18): `constants` (workflow Constants — the
+  `c.*` namespace — with their fixed values), `signal_mappings` (signal-mapping
+  *definitions*, never resolved `s.*` runtime values), and
+  `workflow_definition_hash` (the semantic-contract digest). New nested models
+  `ContractConstant` and `ContractSignalMapping` are exported from
+  `validibot_shared` and `validibot_shared.evidence`.
+- These record "checked against these constants" in the evidence manifest for
+  *every* run, not just Pro-signed ones. Resolved signal values are deliberately
+  excluded (submission-derived and retention-gated).
+
+### Notes
+
+- Additive change: the schema string stays `validibot.evidence.v1` per the
+  package's versioning policy. Producers predating these fields leave them empty
+  and older consumers ignore them.
+
 ## [0.9.2] - 2026-06-10
 
 ### Changed

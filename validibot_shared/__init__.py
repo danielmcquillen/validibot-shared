@@ -9,6 +9,8 @@ from validibot_shared.evidence import (
     SCHEMA_VERSION as EVIDENCE_SCHEMA_VERSION,
 )
 from validibot_shared.evidence import (
+    ContractConstant,
+    ContractSignalMapping,
     EvidenceManifest,
     ManifestPayloadDigests,
     ManifestRetentionInfo,
@@ -26,6 +28,8 @@ from validibot_shared.shacl.envelopes import (
 
 __all__ = [
     "EVIDENCE_SCHEMA_VERSION",
+    "ContractConstant",
+    "ContractSignalMapping",
     "EnergyPlusSimulationLogs",
     "EnergyPlusSimulationMetrics",
     "EnergyPlusSimulationOutputs",

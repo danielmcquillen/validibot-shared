@@ -9,6 +9,8 @@ manifest without pulling in the application stack.
 
 from validibot_shared.evidence.manifest import (
     SCHEMA_VERSION,
+    ContractConstant,
+    ContractSignalMapping,
     EvidenceManifest,
     ManifestPayloadDigests,
     ManifestRetentionInfo,
@@ -18,6 +20,8 @@ from validibot_shared.evidence.manifest import (
 
 __all__ = [
     "SCHEMA_VERSION",
+    "ContractConstant",
+    "ContractSignalMapping",
     "EvidenceManifest",
     "ManifestPayloadDigests",
     "ManifestRetentionInfo",
