@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-07-02
+
+### Added
+
+- New `validibot_shared.schematron` package with the container contract for
+  the Schematron Advanced validator (ADR-2026-07-01): `SchematronInputs` +
+  `build_schematron_input_envelope()` (input direction — ships a *staged
+  artefact reference* with checksums, not inlined rule text) and
+  `SchematronOutputs` / `SchematronOutputEnvelope` (output direction —
+  `engine_status` failure taxonomy, per-severity counts, the
+  `finding_rule_ids_by_severity` map, structured `SchematronFinding` rows
+  preserving native rule ids/locations, and full pack/engine provenance).
+- `ValidatorType.SCHEMATRON` — required so Schematron envelopes can carry
+  the canonical validator identifier.
+- `validibot_shared.schematron.svrl` — the canonical SVRL → findings/summary
+  parser (severity chain `@flag` → `@role` → fail-closed ERROR, active
+  `successful-report` handling, `fired_rule_count`, the
+  `finding_rule_ids_by_severity` map, explicit truncation). Lives here so the
+  validator backend container and the Django app parse SVRL identically.
+  Adds a `defusedxml` runtime dependency.
+
 ## [0.10.0] - 2026-07-01
 
 ### Added

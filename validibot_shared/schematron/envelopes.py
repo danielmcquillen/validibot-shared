@@ -1,0 +1,301 @@
+"""
+Pydantic envelopes for the Schematron Advanced validator backend.
+
+The Schematron validator is an Advanced validator — it runs in an isolated
+container/Cloud Run Job rather than inside the Django worker. The official
+rule packs (EN 16931, Peppol BIS Billing 3.0) are authored with
+``queryBinding="xslt2"`` and require a Saxon engine executing rule-pack XSLT
+over untrusted submitted XML; that never runs next to the worker's database
+credentials, identity, or network (see ADR-2026-07-01, decision D4).
+
+These schemas define the contract between Django and the Schematron container:
+
+- **Input envelope**: the XML submission (as an ``InputFileItem`` URI) plus a
+  reference to the *staged* rule-pack artefact — a container-visible URI
+  (``gs://…`` on Cloud Run, ``file://…`` for local Docker) together with the
+  pinned checksums and query binding. Unlike SHACL, which inlines merged
+  shapes *text*, Schematron ships an artefact reference: the compiled XSLT is
+  large, and the container MUST fetch it by URI and verify ``artifact_sha256``
+  before executing (D4b). The D8 resource limits ride along, already clamped
+  Django-side; the container re-clamps defensively.
+- **Output envelope**: the parsed SVRL summary — per-severity counts, the
+  ``finding_rule_ids_by_severity`` map, structured findings preserving native
+  rule ids/locations — plus ``engine_status`` (D9: findings are only
+  meaningful when the engine actually ran) and the full artefact/engine
+  provenance (D5).
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+from validibot_shared.validations.envelopes import (
+    ExecutionContext,
+    InputFileItem,
+    SupportedMimeType,
+    ValidationInputEnvelope,
+    ValidationOutputEnvelope,
+    ValidatorInfo,
+    ValidatorType,
+)
+
+# ── D9 engine status: "couldn't run the rules" ≠ "the rules failed" ────────
+# ``passed``/findings on the outputs are only meaningful when the engine
+# status is OK. On error/timeout, Django surfaces a single reserved
+# infrastructure finding and never synthesises rule findings.
+ENGINE_STATUS_OK = "ok"
+ENGINE_STATUS_ERROR = "error"
+ENGINE_STATUS_TIMEOUT = "timeout"
+
+# Machine hints for ``SchematronOutputs.engine_error_code`` — Django maps
+# these to its reserved ``schematron.*`` finding codes.
+ENGINE_ERROR_ARTIFACT_MISMATCH = "artifact_mismatch"
+ENGINE_ERROR_BACKEND_UNAVAILABLE = "backend_unavailable"
+
+# Query bindings a pack may declare (mirrors the Django-side pack registry).
+QUERY_BINDING_XSLT1 = "xslt1"
+QUERY_BINDING_XSLT2 = "xslt2"
+
+
+class SchematronInputs(BaseModel):
+    """Schematron run configuration resolved by Django for the container.
+
+    Everything the container needs without database access: which pinned
+    pack to run (by *staged artefact reference*, never a Django package
+    path), the checksums to verify before executing, and the D8 resource
+    limits (already clamped Django-side; re-clamped in the container).
+    """
+
+    pack_id: str = Field(description="Identifier of the vetted rule pack.")
+    pack_version: str = Field(description="Pinned version of the rule pack.")
+    artifact_uri: str = Field(
+        description=(
+            "Container-visible URI of the staged compiled XSLT "
+            "(gs://… on Cloud Run, file://… for local Docker)."
+        ),
+    )
+    artifact_sha256: str = Field(
+        description=(
+            "sha256 of the compiled XSLT. The container MUST verify the "
+            "fetched artefact against this before executing (D4b)."
+        ),
+    )
+    source_sha256: str = Field(
+        default="",
+        description="sha256 of the pinned .sch source (provenance echo).",
+    )
+    query_binding: str = Field(
+        default=QUERY_BINDING_XSLT2,
+        description="Schematron query binding of the pack: xslt1 | xslt2.",
+    )
+    engine: str = Field(
+        default="saxonc-he",
+        description="XSLT engine the pack requires (e.g. saxonc-he).",
+    )
+
+    # ── D8 resource limits (clamped Django-side; re-clamped in container) ──
+    max_input_bytes: int = Field(default=10_000_000, gt=0)
+    max_input_depth: int = Field(default=200, gt=0)
+    xslt_timeout_seconds: int = Field(default=60, gt=0)
+    max_memory_mb: int = Field(default=512, gt=0)
+    max_findings: int = Field(default=500, gt=0)
+
+    model_config = {"extra": "forbid"}
+
+
+class SchematronFinding(BaseModel):
+    """One active SVRL finding with the detail Django needs for D10.
+
+    Both ``svrl:failed-assert`` and ``svrl:successful-report`` entries are
+    active findings (a ``<report>`` can carry a publisher-authored error).
+    ``rule_id`` is the publisher's native identifier (``BR-CO-15``,
+    ``PEPPOL-EN16931-R010``) and becomes ``ValidationFinding.code`` in
+    Django; ``location_xpath`` preserves the SVRL ``@location`` so the
+    finding can point at the offending element. ``flag``/``role`` carry the
+    raw SVRL attributes for provenance (severity was resolved from them via
+    the @flag → @role → fail-closed-ERROR chain, D3).
+    """
+
+    rule_id: str = Field(default="", description="Native rule id (@id).")
+    message: str = Field(description="Human-readable finding text.")
+    severity: str = Field(description="ERROR | WARNING | INFO (resolved).")
+    location_xpath: str = Field(
+        default="",
+        description="SVRL @location XPath into the submitted document.",
+    )
+    flag: str = Field(default="", description="Raw SVRL @flag attribute.")
+    role: str = Field(default="", description="Raw SVRL @role attribute.")
+
+    model_config = {"extra": "forbid"}
+
+
+class SchematronOutputs(BaseModel):
+    """Schematron results: engine status, SVRL summary, and provenance.
+
+    The signal fields (``passed`` … ``engine``) mirror the catalog entries in
+    the Django Schematron ``ValidatorConfig`` — Django's
+    ``extract_output_signals`` pulls exactly those keys for CEL assertion
+    evaluation.
+
+    D9 contract: when ``engine_status != "ok"`` the run never evaluated the
+    rules — ``passed`` is ``None`` (*unknown*, not failed), the counts are
+    meaningless, and ``finding_rule_ids_by_severity``/``findings`` stay
+    empty. Django surfaces one reserved infrastructure finding instead.
+    """
+
+    # ── D9 engine status ──
+    engine_status: str = Field(
+        default=ENGINE_STATUS_OK,
+        description="ok | error | timeout — findings only meaningful on ok.",
+    )
+    engine_message: str = Field(
+        default="",
+        description="Human-readable engine failure detail (when not ok).",
+    )
+    engine_error_code: str = Field(
+        default="",
+        description=(
+            "Machine hint for the failure kind (e.g. artifact_mismatch, "
+            "backend_unavailable); maps to Django's reserved codes."
+        ),
+    )
+
+    # ── o.* signals (must stay aligned with the ValidatorConfig catalog) ──
+    passed: bool | None = Field(
+        default=None,
+        description=(
+            "True iff zero ERROR-level findings; None (unknown) when the "
+            "engine could not run."
+        ),
+    )
+    error_count: int = Field(default=0, ge=0)
+    warning_count: int = Field(default=0, ge=0)
+    info_count: int = Field(default=0, ge=0)
+    # svrl:fired-rule counts rules/contexts EVALUATED, not assertions that
+    # fired — never surface this as an "assertion count" (D3 SVRL note).
+    fired_rule_count: int = Field(default=0, ge=0)
+    finding_rule_ids_by_severity: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            'Map of native rule id to resolved severity, e.g. {"BR-CO-15": '
+            '"ERROR"}. Key membership + severity gates in CEL (D2).'
+        ),
+    )
+
+    # ── Findings (volume-capped, never silently — D10) ──
+    findings: list[SchematronFinding] = Field(
+        default_factory=list,
+        description=(
+            "Active findings (failed-asserts AND successful-reports), "
+            "capped at max_findings ordered ERROR → WARNING → INFO."
+        ),
+    )
+    findings_truncated: bool = Field(
+        default=False,
+        description="True when the findings list was capped.",
+    )
+    findings_suppressed_count: int = Field(
+        default=0,
+        ge=0,
+        description="How many findings the cap suppressed (counts stay full).",
+    )
+
+    # ── Provenance of the exact executed artefact + engine (D5) ──
+    pack_id: str = Field(default="")
+    pack_version: str = Field(default="")
+    pack_source_sha256: str = Field(default="")
+    pack_artifact_sha256: str = Field(
+        default="",
+        description="sha256 of the compiled XSLT actually executed.",
+    )
+    query_binding: str = Field(default="")
+    engine: str = Field(
+        default="",
+        description="Engine name + version that ran, e.g. 'SaxonC-HE 12.5'.",
+    )
+
+    execution_seconds: float = Field(default=0.0, ge=0)
+
+    model_config = {"extra": "forbid"}
+
+
+class SchematronInputEnvelope(ValidationInputEnvelope):
+    """Input envelope for Schematron validator containers."""
+
+    inputs: SchematronInputs
+
+
+class SchematronOutputEnvelope(ValidationOutputEnvelope):
+    """Output envelope from Schematron validator containers.
+
+    ``outputs`` can be ``None`` for runtime-failure cases where the backend
+    crashed before producing even an engine-status summary.
+    """
+
+    outputs: SchematronOutputs | None = None
+
+
+def build_schematron_input_envelope(
+    *,
+    run_id: str,
+    validator,
+    org_id: str,
+    org_name: str,
+    workflow_id: str,
+    step_id: str,
+    step_name: str | None,
+    submission_uri: str,
+    inputs: SchematronInputs,
+    callback_url: str,
+    execution_bundle_uri: str,
+    callback_id: str | None = None,
+    skip_callback: bool = False,
+) -> SchematronInputEnvelope:
+    """Build a ``SchematronInputEnvelope`` from Django validation data.
+
+    Args:
+        run_id: ValidationRun ID.
+        validator: Validator-like object (id/validation_type/version attrs).
+        org_id / org_name: Organization identity.
+        workflow_id / step_id / step_name: Workflow context.
+        submission_uri: Storage URI for the XML submission (gs:// or file://).
+        inputs: Fully-resolved ``SchematronInputs`` (staged artefact
+            reference + checksums + limits).
+        callback_url: URL the container POSTs to on completion.
+        execution_bundle_uri: Base URI for this run's bundle.
+        callback_id: Idempotency key echoed back in the callback.
+        skip_callback: True for synchronous (Docker) execution.
+    """
+    input_files = [
+        InputFileItem(
+            name="submission.xml",
+            mime_type=SupportedMimeType.APPLICATION_XML,
+            role="primary-model",
+            uri=submission_uri,
+        ),
+    ]
+
+    context = ExecutionContext(
+        callback_id=callback_id,
+        callback_url=callback_url,
+        execution_bundle_uri=execution_bundle_uri,
+        skip_callback=skip_callback,
+    )
+
+    return SchematronInputEnvelope(
+        run_id=run_id,
+        validator=ValidatorInfo(
+            id=str(validator.id),
+            type=ValidatorType(validator.validation_type),
+            version=str(getattr(validator, "version", "1")),
+        ),
+        org={"id": org_id, "name": org_name},
+        workflow={
+            "id": workflow_id,
+            "step_id": step_id,
+            "step_name": step_name,
+        },
+        input_files=input_files,
+        inputs=inputs,
+        context=context,
+    )

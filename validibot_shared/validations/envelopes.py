@@ -143,6 +143,7 @@ class ValidatorType(str, Enum):
     BASIC = "BASIC"
     JSON_SCHEMA = "JSON_SCHEMA"
     XML_SCHEMA = "XML_SCHEMA"
+    SCHEMATRON = "SCHEMATRON"
     SHACL = "SHACL"
     ENERGYPLUS = "ENERGYPLUS"
     FMU = "FMU"
