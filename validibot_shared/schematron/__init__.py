@@ -1,8 +1,8 @@
 """Schematron Advanced validator envelopes and models."""
 
 from validibot_shared.schematron.envelopes import (
-    ENGINE_ERROR_ARTIFACT_MISMATCH,
     ENGINE_ERROR_BACKEND_UNAVAILABLE,
+    ENGINE_ERROR_RULES_INVALID,
     ENGINE_STATUS_ERROR,
     ENGINE_STATUS_OK,
     ENGINE_STATUS_TIMEOUT,
@@ -26,8 +26,8 @@ from validibot_shared.schematron.svrl import (
 )
 
 __all__ = [
-    "ENGINE_ERROR_ARTIFACT_MISMATCH",
     "ENGINE_ERROR_BACKEND_UNAVAILABLE",
+    "ENGINE_ERROR_RULES_INVALID",
     "ENGINE_STATUS_ERROR",
     "ENGINE_STATUS_OK",
     "ENGINE_STATUS_TIMEOUT",

@@ -152,9 +152,7 @@ def parse_svrl(
         raise SvrlParseError("Empty SVRL content.")
 
     raw = (
-        svrl_content.encode("utf-8")
-        if isinstance(svrl_content, str)
-        else svrl_content
+        svrl_content.encode("utf-8") if isinstance(svrl_content, str) else svrl_content
     )
     try:
         root = SafeET.fromstring(raw, forbid_dtd=True)
@@ -192,13 +190,10 @@ def parse_svrl(
                 existing is None
                 or _SEVERITY_RANK[finding.severity] < _SEVERITY_RANK[existing]
             ):
-                summary.finding_rule_ids_by_severity[finding.rule_id] = (
-                    finding.severity
-                )
+                summary.finding_rule_ids_by_severity[finding.rule_id] = finding.severity
         else:
             logger.warning(
-                "SVRL %s finding has no @id; kept without a rule id "
-                "(message=%r)",
+                "SVRL %s finding has no @id; kept without a rule id (message=%r)",
                 finding.element,
                 finding.message[:120],
             )

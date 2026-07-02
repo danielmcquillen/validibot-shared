@@ -1,18 +1,19 @@
 """Tests for the Schematron container contract (ADR-2026-07-01, D4b/D9).
 
-The Schematron validator ships an **artefact reference** (staged URI +
-checksums) rather than inlined rule text, and its outputs carry an
-``engine_status`` failure taxonomy where ``passed`` is *tri-state* —
-True/False when the engine ran, ``None`` (unknown) when it could not. These
-tests pin those contract properties so a refactor cannot silently weaken
-them: the Django side and the validator backend both program against exactly
-this shape.
+The Schematron validator ships the author's rules **inline as text** (the
+SHACL ``shapes_text`` pattern — the container compiles them itself), and its
+outputs carry an ``engine_status`` failure taxonomy where ``passed`` is
+*tri-state* — True/False when the engine ran, ``None`` (unknown) when it
+could not. These tests pin those contract properties so a refactor cannot
+silently weaken them: the Django side and the validator backend both program
+against exactly this shape.
 """
 
 import pytest
 from pydantic import ValidationError
 
 from validibot_shared.schematron.envelopes import (
+    ENGINE_ERROR_RULES_INVALID,
     ENGINE_STATUS_OK,
     ENGINE_STATUS_TIMEOUT,
     SchematronFinding,
@@ -32,7 +33,13 @@ from validibot_shared.validations.envelopes import (
 DEFAULT_MAX_FINDINGS = 500
 DEFAULT_XSLT_TIMEOUT = 60
 TEST_ERROR_COUNT = 3
-ARTIFACT_SHA = "b" * 64
+RULES_SHA = "b" * 64
+
+SCH_SOURCE = (
+    '<schema xmlns="http://purl.oclc.org/dsdl/schematron">'
+    "<pattern><rule context='/'><assert test='true()'>ok</assert></rule>"
+    "</pattern></schema>"
+)
 
 
 class _ValidatorStub:
@@ -45,46 +52,43 @@ class _ValidatorStub:
 
 def _inputs(**overrides) -> SchematronInputs:
     base = {
-        "pack_id": "en16931-ubl",
-        "pack_version": "1.3.16",
-        "artifact_uri": "gs://bucket/run-1/pack.xslt",
-        "artifact_sha256": ARTIFACT_SHA,
-        "query_binding": "xslt2",
+        "schematron_text": SCH_SOURCE,
+        "schematron_sha256": RULES_SHA,
     }
     base.update(overrides)
     return SchematronInputs(**base)
 
 
-def test_schematron_inputs_carry_artifact_reference_and_limit_defaults():
-    """Inputs pin the staged artefact + checksum and default the D8 limits.
+def test_inputs_carry_inline_rules_and_limit_defaults():
+    """Inputs ship the rules inline with provenance sha and D8 defaults.
 
-    The container MUST be able to verify what it fetched before executing —
-    so the artefact URI and sha256 are required — while the resource limits
-    default to the ADR's table values for direct consumers.
+    Inline text is the whole delivery model (no staging, no artefact URIs):
+    the container gets everything it needs from the envelope alone, exactly
+    like SHACL's shapes_text.
     """
     inputs = _inputs()
 
-    assert inputs.artifact_uri == "gs://bucket/run-1/pack.xslt"
-    assert inputs.artifact_sha256 == ARTIFACT_SHA
+    assert inputs.schematron_text == SCH_SOURCE
+    assert inputs.schematron_sha256 == RULES_SHA
     assert inputs.max_findings == DEFAULT_MAX_FINDINGS
     assert inputs.xslt_timeout_seconds == DEFAULT_XSLT_TIMEOUT
 
 
-def test_schematron_inputs_require_the_artifact_fields():
-    """Omitting the artefact reference is a validation error, not a default.
+def test_inputs_require_the_rules_text():
+    """Omitting schematron_text is a validation error, not a default.
 
-    An input envelope without a verifiable artefact would force the container
-    to either refuse (good, but late) or trust an unpinned path (never).
+    An input envelope without rules would force the container to run
+    nothing and report... something. Refuse at the contract layer.
     """
     with pytest.raises(ValidationError):
-        SchematronInputs(pack_id="x", pack_version="1")
+        SchematronInputs()
 
 
 def test_outputs_default_to_unknown_passed_not_false():
     """``passed`` defaults to None — unknown, not failed (D9).
 
     A default of False would make an unpopulated envelope read as "the
-    invoice failed the rules"; None forces every consumer to distinguish
+    document failed the rules"; None forces every consumer to distinguish
     "engine didn't run" from "rules failed".
     """
     outputs = SchematronOutputs()
@@ -92,35 +96,46 @@ def test_outputs_default_to_unknown_passed_not_false():
     assert outputs.engine_status == ENGINE_STATUS_OK
 
 
-def test_engine_failure_shape_round_trips():
-    """A timeout outputs object serializes and re-validates losslessly.
+def test_engine_failure_shapes_round_trip():
+    """Timeout and rules-invalid outputs serialize and re-validate losslessly.
 
     The callback path deserializes output.json with this model; the D9
-    fields must survive the JSON round trip exactly.
+    fields must survive the JSON round trip exactly, including the
+    machine hint that lets Django distinguish "your rules don't compile"
+    from a generic engine error.
     """
-    outputs = SchematronOutputs(
+    timeout = SchematronOutputs(
         engine_status=ENGINE_STATUS_TIMEOUT,
         engine_message="Transform exceeded 60s",
         passed=None,
-        error_count=0,
     )
-    envelope = SchematronOutputEnvelope(
-        run_id="run-1",
-        validator={"id": "v1", "type": ValidatorType.SCHEMATRON, "version": "1"},
-        status=ValidationStatus.FAILED_RUNTIME,
-        timing={},
-        outputs=outputs,
+    invalid_rules = SchematronOutputs(
+        engine_status="error",
+        engine_error_code=ENGINE_ERROR_RULES_INVALID,
+        engine_message="Schematron failed to compile: unexpected element",
+        passed=None,
     )
+    for outputs, status in (
+        (timeout, ValidationStatus.FAILED_RUNTIME),
+        (invalid_rules, ValidationStatus.FAILED_RUNTIME),
+    ):
+        envelope = SchematronOutputEnvelope(
+            run_id="run-1",
+            validator={"id": "v1", "type": ValidatorType.SCHEMATRON, "version": "1"},
+            status=status,
+            timing={},
+            outputs=outputs,
+        )
+        restored = SchematronOutputEnvelope.model_validate(
+            envelope.model_dump(mode="json"),
+        )
+        assert restored.outputs.engine_status == outputs.engine_status
+        assert restored.outputs.engine_error_code == outputs.engine_error_code
+        assert restored.outputs.passed is None
 
-    restored = SchematronOutputEnvelope.model_validate(
-        envelope.model_dump(mode="json"),
-    )
-    assert restored.outputs.engine_status == ENGINE_STATUS_TIMEOUT
-    assert restored.outputs.passed is None
 
-
-def test_findings_and_rule_id_map_round_trip():
-    """Findings keep native ids/locations and the map keeps its D2 shape."""
+def test_findings_map_and_provenance_round_trip():
+    """Findings keep native ids/locations; provenance keeps the rules sha."""
     outputs = SchematronOutputs(
         engine_status=ENGINE_STATUS_OK,
         passed=False,
@@ -135,12 +150,17 @@ def test_findings_and_rule_id_map_round_trip():
                 flag="fatal",
             ),
         ],
+        schematron_sha256=RULES_SHA,
+        query_binding="xslt2",
+        engine="SaxonC-HE 12.9",
     )
 
     restored = SchematronOutputs.model_validate(outputs.model_dump(mode="json"))
     assert restored.finding_rule_ids_by_severity["BR-CO-15"] == "ERROR"
     assert restored.findings[0].rule_id == "BR-CO-15"
     assert restored.findings[0].location_xpath == "/Invoice/LegalMonetaryTotal"
+    assert restored.schematron_sha256 == RULES_SHA
+    assert restored.query_binding == "xslt2"
 
 
 def test_outputs_forbid_unknown_fields():
@@ -148,9 +168,10 @@ def test_outputs_forbid_unknown_fields():
 
     Contract models must reject unknown keys so a mismatched backend/Django
     version pair surfaces as an explicit error instead of dropped data.
+    This also guards the 0.11 → 0.12 break: old pack_* fields are refused.
     """
     with pytest.raises(ValidationError):
-        SchematronOutputs(engine_status="ok", not_a_field=1)
+        SchematronOutputs(engine_status="ok", pack_id="stale-field")
 
 
 def test_build_schematron_input_envelope_assembles_the_xml_submission():
@@ -180,4 +201,4 @@ def test_build_schematron_input_envelope_assembles_the_xml_submission():
     assert file_item.name == "submission.xml"
     assert file_item.mime_type == SupportedMimeType.APPLICATION_XML
     assert file_item.role == "primary-model"
-    assert envelope.inputs.pack_id == "en16931-ubl"
+    assert envelope.inputs.schematron_text == SCH_SOURCE

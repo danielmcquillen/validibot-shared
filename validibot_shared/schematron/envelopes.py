@@ -2,27 +2,27 @@
 Pydantic envelopes for the Schematron Advanced validator backend.
 
 The Schematron validator is an Advanced validator — it runs in an isolated
-container/Cloud Run Job rather than inside the Django worker. The official
-rule packs (EN 16931, Peppol BIS Billing 3.0) are authored with
-``queryBinding="xslt2"`` and require a Saxon engine executing rule-pack XSLT
-over untrusted submitted XML; that never runs next to the worker's database
-credentials, identity, or network (see ADR-2026-07-01, decision D4).
+container/Cloud Run Job rather than inside the Django worker. Schematron
+rules compile to XSLT (a full programming language), so author-uploaded
+rules are executable code and only ever run inside the sandboxed container:
+no database, no secrets, no network egress, locked-down engine
+(ADR-2026-07-01, decisions D4/D8).
 
-These schemas define the contract between Django and the Schematron container:
+These schemas define the contract between Django and the Schematron
+container:
 
-- **Input envelope**: the XML submission (as an ``InputFileItem`` URI) plus a
-  reference to the *staged* rule-pack artefact — a container-visible URI
-  (``gs://…`` on Cloud Run, ``file://…`` for local Docker) together with the
-  pinned checksums and query binding. Unlike SHACL, which inlines merged
-  shapes *text*, Schematron ships an artefact reference: the compiled XSLT is
-  large, and the container MUST fetch it by URI and verify ``artifact_sha256``
-  before executing (D4b). The D8 resource limits ride along, already clamped
+- **Input envelope**: the XML submission (as an ``InputFileItem`` URI) plus
+  the author's Schematron rules **inline as text** — exactly how SHACL
+  ships its merged shapes text. Django resolves the rules from the step's
+  ``Ruleset`` before dispatch; the container compiles them (SchXslt2 →
+  XSLT, baked into the image as fixed tooling) and runs the result over the
+  submission. The D8 resource limits ride along, already clamped
   Django-side; the container re-clamps defensively.
 - **Output envelope**: the parsed SVRL summary — per-severity counts, the
-  ``finding_rule_ids_by_severity`` map, structured findings preserving native
-  rule ids/locations — plus ``engine_status`` (D9: findings are only
-  meaningful when the engine actually ran) and the full artefact/engine
-  provenance (D5).
+  ``finding_rule_ids_by_severity`` map, structured findings preserving
+  native rule ids/locations — plus ``engine_status`` (D9: findings are only
+  meaningful when the engine actually ran) and provenance (the sha256 of
+  the executed rules, the detected query binding, and the engine that ran).
 """
 
 from __future__ import annotations
@@ -49,10 +49,15 @@ ENGINE_STATUS_TIMEOUT = "timeout"
 
 # Machine hints for ``SchematronOutputs.engine_error_code`` — Django maps
 # these to its reserved ``schematron.*`` finding codes.
-ENGINE_ERROR_ARTIFACT_MISMATCH = "artifact_mismatch"
+#
+# ``rules_invalid``: the author's uploaded Schematron failed to compile.
+# That's a workflow-authoring problem, not a fact about the submitted
+# document — the submitter's run still reads "the check couldn't run".
+ENGINE_ERROR_RULES_INVALID = "rules_invalid"
 ENGINE_ERROR_BACKEND_UNAVAILABLE = "backend_unavailable"
 
-# Query bindings a pack may declare (mirrors the Django-side pack registry).
+# Schematron query bindings (declared by the .sch root's ``queryBinding``
+# attribute; the container detects and echoes it for provenance).
 QUERY_BINDING_XSLT1 = "xslt1"
 QUERY_BINDING_XSLT2 = "xslt2"
 
@@ -60,37 +65,25 @@ QUERY_BINDING_XSLT2 = "xslt2"
 class SchematronInputs(BaseModel):
     """Schematron run configuration resolved by Django for the container.
 
-    Everything the container needs without database access: which pinned
-    pack to run (by *staged artefact reference*, never a Django package
-    path), the checksums to verify before executing, and the D8 resource
-    limits (already clamped Django-side; re-clamped in the container).
+    Everything the container needs without database access: the author's
+    rules inline (the SHACL ``shapes_text`` pattern — a ``.sch`` is a text
+    document, typically tens to hundreds of KB) and the D8 resource limits
+    (already clamped Django-side; re-clamped in the container).
     """
 
-    pack_id: str = Field(description="Identifier of the vetted rule pack.")
-    pack_version: str = Field(description="Pinned version of the rule pack.")
-    artifact_uri: str = Field(
+    schematron_text: str = Field(
         description=(
-            "Container-visible URI of the staged compiled XSLT "
-            "(gs://… on Cloud Run, file://… for local Docker)."
+            "The Schematron source (.sch) to compile and run, resolved from "
+            "the step's Ruleset by Django. The container compiles it with "
+            "the SchXslt2 transpiler baked into the image."
         ),
     )
-    artifact_sha256: str = Field(
-        description=(
-            "sha256 of the compiled XSLT. The container MUST verify the "
-            "fetched artefact against this before executing (D4b)."
-        ),
-    )
-    source_sha256: str = Field(
+    schematron_sha256: str = Field(
         default="",
-        description="sha256 of the pinned .sch source (provenance echo).",
-    )
-    query_binding: str = Field(
-        default=QUERY_BINDING_XSLT2,
-        description="Schematron query binding of the pack: xslt1 | xslt2.",
-    )
-    engine: str = Field(
-        default="saxonc-he",
-        description="XSLT engine the pack requires (e.g. saxonc-he).",
+        description=(
+            "sha256 of schematron_text, computed by Django at dispatch — "
+            "the provenance identity of the rules this run executed."
+        ),
     )
 
     # ── D8 resource limits (clamped Django-side; re-clamped in container) ──
@@ -108,7 +101,7 @@ class SchematronFinding(BaseModel):
 
     Both ``svrl:failed-assert`` and ``svrl:successful-report`` entries are
     active findings (a ``<report>`` can carry a publisher-authored error).
-    ``rule_id`` is the publisher's native identifier (``BR-CO-15``,
+    ``rule_id`` is the rule's native identifier (``BR-CO-15``,
     ``PEPPOL-EN16931-R010``) and becomes ``ValidationFinding.code`` in
     Django; ``location_xpath`` preserves the SVRL ``@location`` so the
     finding can point at the offending element. ``flag``/``role`` carry the
@@ -155,7 +148,7 @@ class SchematronOutputs(BaseModel):
     engine_error_code: str = Field(
         default="",
         description=(
-            "Machine hint for the failure kind (e.g. artifact_mismatch, "
+            "Machine hint for the failure kind (e.g. rules_invalid, "
             "backend_unavailable); maps to Django's reserved codes."
         ),
     )
@@ -200,18 +193,21 @@ class SchematronOutputs(BaseModel):
         description="How many findings the cap suppressed (counts stay full).",
     )
 
-    # ── Provenance of the exact executed artefact + engine (D5) ──
-    pack_id: str = Field(default="")
-    pack_version: str = Field(default="")
-    pack_source_sha256: str = Field(default="")
-    pack_artifact_sha256: str = Field(
+    # ── Provenance of the executed rules + engine (D5) ──
+    schematron_sha256: str = Field(
         default="",
-        description="sha256 of the compiled XSLT actually executed.",
+        description="sha256 of the Schematron source that was executed.",
     )
-    query_binding: str = Field(default="")
+    query_binding: str = Field(
+        default="",
+        description=(
+            "Query binding detected from the .sch root (xslt1/xslt2/…), "
+            "echoed for provenance."
+        ),
+    )
     engine: str = Field(
         default="",
-        description="Engine name + version that ran, e.g. 'SaxonC-HE 12.5'.",
+        description="Engine name + version that ran, e.g. 'SaxonC-HE 12.9'.",
     )
 
     execution_seconds: float = Field(default=0.0, ge=0)
@@ -259,8 +255,7 @@ def build_schematron_input_envelope(
         org_id / org_name: Organization identity.
         workflow_id / step_id / step_name: Workflow context.
         submission_uri: Storage URI for the XML submission (gs:// or file://).
-        inputs: Fully-resolved ``SchematronInputs`` (staged artefact
-            reference + checksums + limits).
+        inputs: Fully-resolved ``SchematronInputs`` (inline rules + limits).
         callback_url: URL the container POSTs to on completion.
         execution_bundle_uri: Base URI for this run's bundle.
         callback_id: Idempotency key echoed back in the callback.

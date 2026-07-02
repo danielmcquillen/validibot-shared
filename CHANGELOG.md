@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-07-02
+
+### Changed (BREAKING for the Schematron contract introduced in 0.11.0)
+
+- Schematron pivots from curated "rule packs" to **author-uploaded rules**
+  (ADR-2026-07-01 revision): `SchematronInputs` now carries the rules
+  **inline** as `schematron_text` (+ `schematron_sha256` provenance) — the
+  SHACL `shapes_text` pattern — replacing the staged-artefact reference
+  fields (`pack_id`, `pack_version`, `artifact_uri`, `artifact_sha256`,
+  `source_sha256`, `query_binding`, `engine`). The container compiles the
+  source itself (SchXslt2 transpiler baked into the image).
+- `SchematronOutputs` provenance: `schematron_sha256` replaces the
+  `pack_*` fields; `query_binding` is now the binding *detected* from the
+  source; `engine` unchanged (what actually ran).
+- `ENGINE_ERROR_RULES_INVALID` replaces `ENGINE_ERROR_ARTIFACT_MISMATCH`:
+  an uploaded schematron that fails to compile is an engine-level refusal
+  (author-facing), never a finding about the submitted document.
+- 0.11.0 had no consumers at publish time, so this breaking change is
+  intentionally taken now rather than carried forever.
+
 ## [0.11.0] - 2026-07-02
 
 ### Added

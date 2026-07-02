@@ -64,9 +64,7 @@ def _failed_assert(
     if role:
         attrs += f' role="{role}"'
     return (
-        f"<svrl:failed-assert{attrs}>"
-        f"<svrl:text>{text}</svrl:text>"
-        "</svrl:failed-assert>"
+        f"<svrl:failed-assert{attrs}><svrl:text>{text}</svrl:text></svrl:failed-assert>"
     )
 
 
