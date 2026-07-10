@@ -134,11 +134,38 @@ Supporting models include:
 | Class | Purpose |
 |-------|---------|
 | `InputFileItem` | File reference with URI, MIME type, and role |
+| `ResourceFileItem` | Managed auxiliary file reference with URI and resource type |
 | `ValidatorInfo` | Validator identification (ID, type, version) |
 | `ExecutionContext` | Callback URL, execution bundle URI, timeout |
 | `ValidationMessage` | Individual finding (error, warning, info) |
 | `ValidationMetric` | Named numeric metric with optional unit |
 | `ValidationArtifact` | Output file reference (reports, logs, etc.) |
+
+### Designing File Inputs
+
+The shared envelope exposes file inputs as `input_files` and `resource_files`.
+Validator authors should still design those files as **declared ports** in the
+core platform.
+
+A file port answers:
+
+- what the file means to the validator (`primary_model`, `weather_file`,
+  `data_graph`, `xml_document`, `schema_file`, `fmu_model`);
+- how many files are valid (`1..1`, `0..1`, or a future collection);
+- which envelope channel it renders into (`input_files` or `resource_files`);
+- which backend role/type it uses (`primary-model`, `weather`, `fmu`,
+  `data-graph`);
+- which formats and MIME types are accepted;
+- whether the source may be a submitted file, workflow resource, upstream
+  artifact, or signal containing an artifact reference.
+
+Keep small configuration in typed `inputs`. Use file/resource/artifact ports
+for bytes. For example, EnergyPlus timestep settings belong in
+`EnergyPlusInputs`; the IDF/epJSON model and EPW weather file belong in file
+ports rendered to `input_files` / `resource_files`.
+
+Backends should read files by role, and by future optional `port_key` when
+available, not by assuming `input_files[0]` forever.
 
 ### Typed Subclassing Pattern
 
@@ -171,9 +198,14 @@ validibot_shared/
 ├── energyplus/           # EnergyPlus-specific models and envelopes
 │   ├── models.py         # Simulation output models (metrics, results)
 │   └── envelopes.py      # Typed envelope subclasses
-└── fmu/                  # FMU-specific models
-    ├── models.py         # Probe result models
-    └── envelopes.py      # FMU envelope subclasses
+├── fmu/                  # FMU-specific models
+│   ├── models.py         # Probe/simulation result models
+│   └── envelopes.py      # FMU envelope subclasses
+├── shacl/                # SHACL isolated-backend envelopes
+│   └── envelopes.py      # SHACL inputs/outputs and builder
+└── schematron/           # Schematron isolated-backend envelopes
+    ├── envelopes.py      # Schematron inputs/outputs and builder
+    └── svrl.py           # SVRL parsing helpers
 ```
 
 ## Usage Examples
