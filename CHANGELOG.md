@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-07-13
+
+### Added
+
+- Add `validibot_shared.canonicalization`, the shared RFC 8785 / JCS
+  canonical-JSON helper used by community evidence manifests and Pro credential
+  signing. This moves the canonicalizer out of the Pro-only layer so the
+  workflow-definition contract hash has one portable implementation for
+  producers and third-party verifiers.
+
 ## [0.12.0] - 2026-07-02
 
 ### Changed (BREAKING for the Schematron contract introduced in 0.11.0)
