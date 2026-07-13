@@ -1,5 +1,11 @@
 """Shared domain models and utilities for Validibot."""
 
+from validibot_shared.canonicalization import (
+    canonicalize_dict,
+    canonicalize_model,
+    sha256_hex_for_dict,
+    sha256_hex_for_model,
+)
 from validibot_shared.energyplus.models import (
     EnergyPlusSimulationLogs,
     EnergyPlusSimulationMetrics,
@@ -30,6 +36,8 @@ __all__ = [
     "EVIDENCE_SCHEMA_VERSION",
     "ContractConstant",
     "ContractSignalMapping",
+    "canonicalize_dict",
+    "canonicalize_model",
     "EnergyPlusSimulationLogs",
     "EnergyPlusSimulationMetrics",
     "EnergyPlusSimulationOutputs",
@@ -43,6 +51,8 @@ __all__ = [
     "SHACLOutputEnvelope",
     "SHACLOutputs",
     "SHACLSparqlAssertionSpec",
+    "sha256_hex_for_dict",
+    "sha256_hex_for_model",
     "StepValidatorRecord",
     "WorkflowContractSnapshot",
 ]
