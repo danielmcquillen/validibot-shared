@@ -205,6 +205,14 @@ class InputFileItem(BaseModel):
         description="Validator-specific role (e.g., 'primary-model', 'config')",
     )
 
+    port_key: str | None = Field(
+        default=None,
+        description=(
+            "Declared Validibot file-port key that produced this envelope item "
+            "(e.g., 'primary_model'). Optional for backwards-compatible rollout."
+        ),
+    )
+
     uri: str = Field(
         description="Storage URI to the file (gs:// or file:// for self-hosted)"
     )
@@ -230,6 +238,14 @@ class ResourceFileItem(BaseModel):
 
     type: str = Field(
         description="Resource type (e.g., 'weather', 'library', 'config')"
+    )
+
+    port_key: str | None = Field(
+        default=None,
+        description=(
+            "Declared Validibot file-port key that produced this resource item "
+            "(e.g., 'weather_file'). Optional for backwards-compatible rollout."
+        ),
     )
 
     uri: str = Field(

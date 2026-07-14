@@ -9,6 +9,7 @@ from validibot_shared.validations.envelopes import (
     ExecutionContext,
     InputFileItem,
     MessageLocation,
+    ResourceFileItem,
     Severity,
     SupportedMimeType,
     ValidationCallback,
@@ -51,7 +52,33 @@ def test_validation_input_envelope_defaults_schema_version():
 
     assert envelope.schema_version == "validibot.input.v1"
     assert envelope.input_files[0].role == "primary-model"
+    assert envelope.input_files[0].port_key is None
     assert envelope.inputs == {}
+
+
+def test_input_file_item_accepts_optional_port_key():
+    """InputFileItem should carry declared file-port identity when available."""
+    item = InputFileItem(
+        name="model.idf",
+        mime_type=SupportedMimeType.ENERGYPLUS_IDF,
+        role="primary-model",
+        port_key="primary_model",
+        uri="gs://bucket/model.idf",
+    )
+
+    assert item.port_key == "primary_model"
+
+
+def test_resource_file_item_accepts_optional_port_key():
+    """ResourceFileItem should carry declared file-port identity when available."""
+    item = ResourceFileItem(
+        id="resource-1",
+        type="energyplus_weather",
+        port_key="weather_file",
+        uri="gs://bucket/weather.epw",
+    )
+
+    assert item.port_key == "weather_file"
 
 
 def test_input_file_item_forbids_extra_fields():

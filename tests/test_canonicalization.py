@@ -63,9 +63,7 @@ def test_large_integer_is_preserved_exactly() -> None:
 
 def test_bool_still_serializes_as_json_literals() -> None:
     """``bool`` must remain JSON ``true``/``false`` despite subclassing ``int``."""
-    assert canonicalize_dict({"yes": True, "no": False}) == (
-        b'{"no":false,"yes":true}'
-    )
+    assert canonicalize_dict({"yes": True, "no": False}) == (b'{"no":false,"yes":true}')
 
 
 def test_unicode_strings_are_preserved() -> None:

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-07-14
+
+### Added
+
+- Add `validibot_shared.validations.artifacts` with the provider-neutral
+  `ArtifactRef` schema and file-port contract vocabulary used by workflow
+  artifact references and file-like step ports.
+- Add optional `port_key` fields to `InputFileItem` and `ResourceFileItem` so
+  backend envelope items can be traced back to their declared Validibot file
+  ports during the artifact-port rollout.
+
 ## [0.12.1] - 2026-07-13
 
 ### Added

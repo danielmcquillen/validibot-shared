@@ -140,6 +140,8 @@ Supporting models include:
 | `ValidationMessage` | Individual finding (error, warning, info) |
 | `ValidationMetric` | Named numeric metric with optional unit |
 | `ValidationArtifact` | Output file reference (reports, logs, etc.) |
+| `ArtifactRef` | Indexed run artifact reference for workflow/evidence control planes |
+| `FilePortContract` | Shared file-port vocabulary for declared validator file inputs/outputs |
 
 ### Designing File Inputs
 
@@ -166,6 +168,12 @@ ports rendered to `input_files` / `resource_files`.
 
 Backends should read files by role, and by future optional `port_key` when
 available, not by assuming `input_files[0]` forever.
+
+`ArtifactRef` and `FilePortContract` live in
+`validibot_shared.validations.artifacts`. `InputFileItem` and
+`ResourceFileItem` also accept an optional `port_key` so a backend or evidence
+builder can correlate an envelope item back to the declared Validibot port
+without relying only on backend role/type strings.
 
 ### Typed Subclassing Pattern
 
