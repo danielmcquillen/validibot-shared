@@ -267,6 +267,160 @@ class ManifestPayloadDigests(BaseModel):
     )
 
 
+class ManifestProducedArtifact(BaseModel):
+    """Public, durable projection of an artifact produced by a run step.
+
+    This deliberately omits storage locations (``storage_uri`` and
+    ``manifest_uri`` in the Django model / ArtifactRef). Evidence consumers need
+    stable identity, hashes, producer coordinates, and file descriptors; private
+    bucket paths stay inside the producer.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    artifact_id: str = Field(description="Producer-side Artifact primary key.")
+    run_id: str = Field(description="Run UUID that owns the artifact.")
+    step_run_id: str | None = Field(
+        default=None,
+        description="Step-run UUID/primary key that produced the artifact.",
+    )
+    producer_step_id: int | None = Field(
+        default=None,
+        description="Producer-side WorkflowStep primary key, if step-scoped.",
+    )
+    producer_step_key: str = Field(
+        default="",
+        description="Stable workflow-local key of the producer step.",
+    )
+    producer_step_name: str = Field(
+        default="",
+        description="Human-facing producer step name at run time.",
+    )
+    contract_key: str = Field(description="Stable artifact output contract key.")
+    item_key: str = Field(
+        default="",
+        description="Stable collection item key, empty for scalar artifact ports.",
+    )
+    filename: str = Field(default="", description="Original/public filename.")
+    label: str = Field(default="", description="Human-facing artifact label.")
+    role: str = Field(default="", description="Validator-facing artifact role.")
+    kind: str = Field(default="", description="Artifact kind.")
+    media_type: str = Field(default="", description="Media/MIME type.")
+    data_format: str = Field(default="", description="Domain data format.")
+    size_bytes: int | None = Field(default=None, description="Artifact byte size.")
+    sha256: str = Field(default="", description="SHA-256 of artifact bytes.")
+    manifest_sha256: str = Field(
+        default="",
+        description="SHA-256 of the validator output manifest, if present.",
+    )
+    producer_validator_type: str = Field(
+        default="",
+        description="Validator type that produced the artifact.",
+    )
+    producer_validator_version: str = Field(
+        default="",
+        description="Validator version that produced the artifact.",
+    )
+    producer_backend_image_digest: str = Field(
+        default="",
+        description="Backend image digest that produced the artifact.",
+    )
+    retention_class: str = Field(
+        default="",
+        description="Output-retention class attached to the artifact.",
+    )
+
+
+class ManifestArtifactInputBinding(BaseModel):
+    """Runtime file-port binding consumed by a step.
+
+    Each row records what artifact-like source satisfied a declared input port:
+    submitted file, workflow resource, or upstream artifact. URI-bearing runtime
+    traces are projected into filename/hash/ID fields only.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    target_step_id: int = Field(description="WorkflowStep primary key consuming it.")
+    target_step_key: str = Field(description="Stable key of the consumer step.")
+    target_step_name: str = Field(default="", description="Consumer step name.")
+    target_step_run_id: str = Field(default="", description="Consumer step-run id.")
+    target_port_key: str = Field(description="Declared artifact input port key.")
+    target_port_role: str = Field(default="", description="Backend-facing port role.")
+    target_envelope_channel: str = Field(
+        default="",
+        description="Envelope channel used by the port.",
+    )
+    source_scope: str = Field(
+        description="Runtime source scope used to resolve the binding.",
+    )
+    source_data_path: str = Field(
+        default="",
+        description="Runtime source path used to resolve the binding.",
+    )
+    resolved: bool = Field(description="Whether runtime resolution succeeded.")
+    used_default: bool = Field(
+        default=False,
+        description="Whether a default satisfied the input.",
+    )
+    source_artifact_id: str = Field(
+        default="",
+        description="Upstream Artifact id, for upstream_artifact bindings.",
+    )
+    source_submission_file_id: str = Field(
+        default="",
+        description="SubmissionInputFile id, for submitted artifact-port files.",
+    )
+    source_submission_id: str = Field(
+        default="",
+        description="Submission id for the primary submitted file, when used.",
+    )
+    source_resource_id: str = Field(
+        default="",
+        description="Workflow/resource id, for workflow_resource bindings.",
+    )
+    source_filename: str = Field(default="", description="Resolved source filename.")
+    source_media_type: str = Field(
+        default="",
+        description="Resolved source media type.",
+    )
+    source_data_format: str = Field(
+        default="",
+        description="Resolved source data format or resource type.",
+    )
+    source_size_bytes: int | None = Field(default=None)
+    source_sha256: str = Field(default="", description="Resolved source SHA-256.")
+    producer_step_key: str = Field(
+        default="",
+        description="Producer step key for upstream_artifact bindings.",
+    )
+    producer_contract_key: str = Field(
+        default="",
+        description="Producer artifact contract key for upstream_artifact bindings.",
+    )
+    error_message: str = Field(
+        default="",
+        description="Resolution error when resolved=false.",
+    )
+
+
+class ManifestArtifactLineageEdge(BaseModel):
+    """Explicit upstream-artifact edge from producer output to consumer input."""
+
+    model_config = ConfigDict(frozen=True)
+
+    source_artifact_id: str = Field(description="Produced Artifact id.")
+    source_step_key: str = Field(default="", description="Producer step key.")
+    source_contract_key: str = Field(
+        default="",
+        description="Producer artifact contract key.",
+    )
+    source_sha256: str = Field(default="", description="Produced artifact SHA-256.")
+    target_step_key: str = Field(description="Consumer step key.")
+    target_port_key: str = Field(description="Consumer artifact input port key.")
+    target_step_run_id: str = Field(default="", description="Consumer step-run id.")
+
+
 class EvidenceManifest(BaseModel):
     """Top-level evidence manifest for a single validation run.
 
@@ -321,6 +475,29 @@ class EvidenceManifest(BaseModel):
         default_factory=ManifestPayloadDigests,
         description="Session A: empty. Session B: input + output hashes.",
     )
+    produced_artifacts: list[ManifestProducedArtifact] = Field(
+        default_factory=list,
+        description=(
+            "Artifacts produced by this run, projected without private storage "
+            "URIs. Empty for runs with no artifacts or producers predating "
+            "artifact lineage evidence."
+        ),
+    )
+    artifact_input_bindings: list[ManifestArtifactInputBinding] = Field(
+        default_factory=list,
+        description=(
+            "Runtime artifact file-port inputs consumed by steps: submitted "
+            "files, workflow resources, and upstream artifacts."
+        ),
+    )
+    artifact_lineage_edges: list[ManifestArtifactLineageEdge] = Field(
+        default_factory=list,
+        description=(
+            "Producer artifact -> consumer port edges for upstream_artifact "
+            "bindings. Submitted files and workflow resources are recorded in "
+            "artifact_input_bindings but do not create producer-step edges."
+        ),
+    )
     # The auth channel that initiated the run.  Pinning it in the
     # manifest lets verifiers answer "what surface produced this
     # run?" without consulting the producer database (the run row
@@ -346,7 +523,10 @@ class EvidenceManifest(BaseModel):
 __all__ = [
     "SCHEMA_VERSION",
     "EvidenceManifest",
+    "ManifestArtifactInputBinding",
+    "ManifestArtifactLineageEdge",
     "ManifestPayloadDigests",
+    "ManifestProducedArtifact",
     "ManifestRetentionInfo",
     "StepValidatorRecord",
     "WorkflowContractSnapshot",

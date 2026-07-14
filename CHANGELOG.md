@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-07-15
+
+### Added
+
+- Add evidence-manifest artifact lineage models: `ManifestProducedArtifact`,
+  `ManifestArtifactInputBinding`, and `ManifestArtifactLineageEdge`.
+- Add default-empty `EvidenceManifest.produced_artifacts`,
+  `artifact_input_bindings`, and `artifact_lineage_edges` fields so producers
+  can record produced artifacts, consumed file-port bindings, and upstream
+  artifact producer-to-consumer edges without exposing private storage URIs.
+
+### Notes
+
+- Additive change: the evidence schema string stays `validibot.evidence.v1`.
+  Producers predating these fields leave them empty; newer producers can
+  populate them while preserving v1 compatibility.
+
 ## [0.13.0] - 2026-07-14
 
 ### Added

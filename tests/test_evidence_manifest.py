@@ -16,6 +16,9 @@ What this file covers
    computation depends on.
 4. Optional fields default sensibly so producers can build a
    minimal Session-A manifest without populating Session-B fields.
+5. Artifact lineage fields are additive, evidence-safe projections:
+   hashes and stable IDs are allowed; private storage URIs are not part
+   of the public schema.
 """
 
 from __future__ import annotations
@@ -28,7 +31,10 @@ from validibot_shared.evidence import (
     ContractConstant,
     ContractSignalMapping,
     EvidenceManifest,
+    ManifestArtifactInputBinding,
+    ManifestArtifactLineageEdge,
     ManifestPayloadDigests,
+    ManifestProducedArtifact,
     ManifestRetentionInfo,
     StepValidatorRecord,
     WorkflowContractSnapshot,
@@ -165,6 +171,78 @@ class TestOptionalFields:
             source="MCP",
         )
         assert manifest.schema_version == "validibot.evidence.v1"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Artifact lineage — produced artifacts, consumed file-port bindings, edges
+# ──────────────────────────────────────────────────────────────────────
+#
+# ADR-2026-07-06. These fields make step artifacts externally verifiable
+# without exposing producer-private storage paths. They are additive and
+# default-empty, so the evidence schema string remains ``validibot.evidence.v1``.
+
+
+class TestArtifactLineageFields:
+    def test_lineage_fields_default_to_empty(self):
+        """Older producers and runs without artifacts remain valid."""
+        manifest = EvidenceManifest(**_minimal_manifest_kwargs())
+
+        assert manifest.produced_artifacts == []
+        assert manifest.artifact_input_bindings == []
+        assert manifest.artifact_lineage_edges == []
+
+    def test_artifact_lineage_records_round_trip_without_storage_uris(self):
+        """The public projection keeps IDs/hashes but has no URI slot.
+
+        Storage URIs are internal deployment details. Evidence needs the durable
+        proof material: artifact id, producer/consumer coordinates, filenames,
+        and SHA-256 hashes.
+        """
+        produced = ManifestProducedArtifact(
+            artifact_id="artifact-1",
+            run_id="run-1",
+            step_run_id="step-run-1",
+            producer_step_id=10,
+            producer_step_key="build_model",
+            contract_key="generated_model",
+            filename="model.epjson",
+            sha256="a" * 64,
+        )
+        binding = ManifestArtifactInputBinding(
+            target_step_id=20,
+            target_step_key="simulate",
+            target_step_run_id="step-run-2",
+            target_port_key="primary_model",
+            source_scope="upstream_artifact",
+            source_artifact_id="artifact-1",
+            source_filename="model.epjson",
+            source_sha256="a" * 64,
+            producer_step_key="build_model",
+            producer_contract_key="generated_model",
+            resolved=True,
+        )
+        edge = ManifestArtifactLineageEdge(
+            source_artifact_id="artifact-1",
+            source_step_key="build_model",
+            source_contract_key="generated_model",
+            source_sha256="a" * 64,
+            target_step_key="simulate",
+            target_port_key="primary_model",
+            target_step_run_id="step-run-2",
+        )
+
+        manifest = EvidenceManifest(
+            **_minimal_manifest_kwargs(),
+            produced_artifacts=[produced],
+            artifact_input_bindings=[binding],
+            artifact_lineage_edges=[edge],
+        )
+        restored = EvidenceManifest.model_validate(manifest.model_dump(mode="json"))
+
+        assert restored == manifest
+        assert restored.schema_version == "validibot.evidence.v1"
+        assert not hasattr(restored.produced_artifacts[0], "storage_uri")
+        assert not hasattr(restored.artifact_input_bindings[0], "uri")
 
 
 # ──────────────────────────────────────────────────────────────────────
