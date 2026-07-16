@@ -363,11 +363,11 @@ get a minor bump so downstream consumers' resolvers can express
   and `output_values` are keyed by native FMU variable names (from
   modelDescription.xml), not internal catalog slugs. No wire format
   change — this documents the contract that was already in practice.
-- **FMU models**: Probe results now feed into `SignalDefinition` rows
+- **FMU models**: Probe results now feed into `StepIODefinition` rows
   in the core Django app (previously documented as "catalog entries").
 - **EnergyPlus models**: `EnergyPlusSimulationMetrics` field names are
-  now documented as the canonical EnergyPlus signal names expected by
-  core Validibot, mapped to `SignalDefinition` rows.
+  now documented as the canonical EnergyPlus output names expected by
+  core Validibot, mapped to `StepIODefinition` rows.
 
 ## [0.3.1] - 2026-03-10
 

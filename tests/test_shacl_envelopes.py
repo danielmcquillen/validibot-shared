@@ -13,8 +13,8 @@ We therefore assert three things:
    (Django serializes the input; the container serializes the output).
 2. ``extra="forbid"`` is honoured so a drifting producer/consumer fails loudly
    rather than silently dropping fields across the trust boundary.
-3. The ``SHACLOutputs`` signal fields stay aligned with what Django's
-   ``extract_output_signals`` expects (the ``o.*`` catalog keys).
+3. The ``SHACLOutputs`` output-value fields stay aligned with what Django's
+   ``extract_output_values`` expects (the ``o.*`` catalog keys).
 """
 
 import pytest
@@ -37,7 +37,7 @@ from validibot_shared.validations.envelopes import (
     ValidatorType,
 )
 
-# The o.* signal keys Django's SHACL catalog declares. If SHACLOutputs ever
+# The o.* output-value keys Django's SHACL catalog declares. If SHACLOutputs ever
 # drops one of these, the Django extractor would silently lose a CEL signal —
 # this list is the canary.
 EXPECTED_SIGNAL_KEYS = {
@@ -197,21 +197,21 @@ def test_sparql_assertion_spec_defaults():
 
 
 # ── Output envelope ─────────────────────────────────────────────────────────
-# The output envelope is what the container writes back. Its signal fields feed
+# The output envelope is what the container writes back. Its output-value fields feed
 # Django's CEL/Basic assertion evaluation; its assertion tallies are folded into
 # the final AssertionStats.
 
 
 def test_shacl_outputs_signal_keys_cover_catalog():
-    """Every catalog signal key must exist as a field on ``SHACLOutputs``.
+    """Every catalog output-value key must exist as a field on ``SHACLOutputs``.
 
-    Django's ``extract_output_signals`` reads these keys off the envelope; a
+    Django's ``extract_output_values`` reads these keys off the envelope; a
     missing field here would surface as a null CEL signal at runtime with no
     error. This test pins the alignment at the contract layer.
     """
     field_names = set(SHACLOutputs.model_fields)
     missing = EXPECTED_SIGNAL_KEYS - field_names
-    assert not missing, f"SHACLOutputs missing signal fields: {missing}"
+    assert not missing, f"SHACLOutputs missing output-value fields: {missing}"
 
 
 def test_shacl_output_envelope_round_trips():

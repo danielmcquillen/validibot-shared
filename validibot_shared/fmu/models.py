@@ -2,7 +2,7 @@
 FMU probe result models.
 
 These models define the contract for FMU probing operations - extracting
-metadata from modelDescription.xml. Probe results feed into SignalDefinition
+metadata from modelDescription.xml. Probe results feed into StepIODefinition
 rows in the core Django app.
 
 Probing is done in-process in the Django worker (not in containers) since

@@ -125,9 +125,9 @@ class SchematronFinding(BaseModel):
 class SchematronOutputs(BaseModel):
     """Schematron results: engine status, SVRL summary, and provenance.
 
-    The signal fields (``passed`` … ``engine``) mirror the catalog entries in
+    The output-value fields (``passed`` … ``engine``) mirror the catalog entries in
     the Django Schematron ``ValidatorConfig`` — Django's
-    ``extract_output_signals`` pulls exactly those keys for CEL assertion
+    ``extract_output_values`` pulls exactly those keys for CEL assertion
     evaluation.
 
     D9 contract: when ``engine_status != "ok"`` the run never evaluated the
@@ -153,7 +153,7 @@ class SchematronOutputs(BaseModel):
         ),
     )
 
-    # ── o.* signals (must stay aligned with the ValidatorConfig catalog) ──
+    # ── o.* output values (must stay aligned with the ValidatorConfig catalog) ──
     passed: bool | None = Field(
         default=None,
         description=(

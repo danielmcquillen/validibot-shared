@@ -81,9 +81,9 @@ class EnergyPlusInputs(BaseModel):
     Using a typed Pydantic model provides compile-time type checking and
     runtime validation of all configuration parameters.
 
-    Note: The validator always returns a fixed set of output signals defined
+    Note: The validator always returns a fixed set of output values defined
     in its catalog. Users don't need to specify which outputs they want -
-    they get all defined signals and write assertions against the ones they
+    they get all defined outputs and write assertions against the ones they
     care about.
     """
 

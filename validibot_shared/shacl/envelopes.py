@@ -15,7 +15,7 @@ These schemas define the contract between Django and the SHACL container:
   the database (rulesets, ``RulesetAssertion`` rows, settings) before dispatch —
   the container receives only this serialized boundary.
 - **Output envelope**: the SHACL findings (as ``ValidationMessage`` rows), the
-  ``o.*`` signal dict (for CEL/Basic output assertions evaluated back in Django),
+  ``o.*`` output-value dict (for CEL/Basic output assertions evaluated back in Django),
   the serialized ``sh:ValidationReport`` for evidence download, and the
   container-side SPARQL-ASK assertion counts (folded into the final assertion
   totals by ``AdvancedValidator.post_execute_validate``).
@@ -192,11 +192,11 @@ class SHACLFinding(BaseModel):
 
 
 class SHACLOutputs(BaseModel):
-    """SHACL validation results and the ``o.*`` signal dict.
+    """SHACL validation results and the ``o.*`` output-value dict.
 
-    The signal fields (``parse_ok`` … ``shacl_total_count``) mirror the catalog
+    The output-value fields (``parse_ok`` … ``shacl_total_count``) mirror the catalog
     entries declared in the Django SHACL ``ValidatorConfig`` — Django's
-    ``extract_output_signals`` pulls exactly those keys for CEL/Basic assertion
+    ``extract_output_values`` pulls exactly those keys for CEL/Basic assertion
     evaluation. The remaining fields carry evidence (the serialized report) and
     the container-side SPARQL-ASK assertion counts.
     """
@@ -212,7 +212,7 @@ class SHACLOutputs(BaseModel):
         ),
     )
 
-    # ── o.* signals (must stay aligned with the SHACL ValidatorConfig catalog) ──
+    # ── o.* output values (must stay aligned with the SHACL ValidatorConfig catalog) ──
     parse_ok: bool = Field(description="Whether the submitted RDF parsed.")
     parse_serialization: str = Field(description="rdflib format used to parse.")
     triple_count: int = Field(default=0, ge=0)
