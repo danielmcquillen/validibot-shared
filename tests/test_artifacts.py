@@ -37,6 +37,7 @@ def test_artifact_ref_serializes_as_json_safe_control_plane_object():
         filename="model.epjson",
         size_bytes=1234,
         sha256="a" * 64,
+        storage_version="1700000000000000",
         uri="gs://bucket/runs/run-1/model.epjson",
         producer_validator_type="BUILDINGSYNC_TO_ENERGYPLUS",
         producer_validator_version="1",
@@ -50,6 +51,28 @@ def test_artifact_ref_serializes_as_json_safe_control_plane_object():
     assert dumped["kind"] == "file"
     assert dumped["producer_step_key"] == "build_model"
     assert dumped["uri"].startswith("gs://")
+    assert dumped["storage_version"] == "1700000000000000"
+
+
+@pytest.mark.parametrize("missing", ["size_bytes", "sha256", "storage_version", "uri"])
+def test_artifact_ref_requires_complete_storage_identity(missing):
+    """Artifact consumers must never receive a partial or mutable file pointer."""
+    payload = {
+        "artifact_id": "artifact-1",
+        "run_id": "run-1",
+        "step_run_id": "step-run-1",
+        "producer_step_key": "build_model",
+        "contract_key": "generated_model",
+        "name": "model.epjson",
+        "size_bytes": 1234,
+        "sha256": "a" * 64,
+        "storage_version": "1700000000000000",
+        "uri": "gs://bucket/runs/run-1/model.epjson",
+    }
+    payload.pop(missing)
+
+    with pytest.raises(ValidationError):
+        ArtifactRef(**payload)
 
 
 def test_file_port_contract_serializes_shared_vocabulary():

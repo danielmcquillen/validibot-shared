@@ -117,7 +117,7 @@ from datetime import datetime  # noqa: TC003
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 ATTEMPT_CONTRACT_VERSION = "validibot.attempt.v1"
 
@@ -188,7 +188,52 @@ class SupportedMimeType(str, Enum):
     RDF_N_QUADS = "application/n-quads"
 
 
-class InputFileItem(BaseModel):
+def _safe_leaf_name(value: str) -> str:
+    """Return ``value`` when it is one safe logical filename.
+
+    Storage URIs carry provider paths; item names are deliberately only leaf
+    names so a backend can materialize them below its own attempt workspace.
+    """
+    if (
+        not value
+        or value in {".", ".."}
+        or "/" in value
+        or "\\" in value
+        or "\x00" in value
+    ):
+        msg = f"File item name must be a safe logical leaf name: {value!r}"
+        raise ValueError(msg)
+    return value
+
+
+class IntegrityBoundFile(BaseModel):
+    """Required byte identity shared by every file-bearing envelope item.
+
+    ``size_bytes`` is both the expected exact length and the runtime's hard
+    streaming ceiling. ``sha256`` identifies the bytes the producer committed
+    to. ``storage_version`` pins the provider-specific immutable object
+    identity (for example a GCS generation or ``sha256:<digest>`` for an
+    attempt-local read-only file).
+    """
+
+    size_bytes: int = Field(
+        ge=0,
+        description="Expected exact file size and hard streaming ceiling.",
+    )
+    sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Lowercase SHA-256 hex digest of the exact file bytes.",
+    )
+    storage_version: str = Field(
+        min_length=1,
+        max_length=512,
+        description="Provider-specific immutable object/version identity.",
+    )
+
+    model_config = {"extra": "forbid"}
+
+
+class InputFileItem(IntegrityBoundFile):
     """
     A user-submitted file input for the validator.
 
@@ -198,7 +243,7 @@ class InputFileItem(BaseModel):
     Note: Auxiliary files like weather files are in resource_files, not input_files.
     """
 
-    name: str = Field(description="Human-readable name of the file")
+    name: str = Field(description="Safe logical leaf name of the file")
 
     mime_type: SupportedMimeType = Field(description="MIME type of the file")
 
@@ -211,7 +256,7 @@ class InputFileItem(BaseModel):
         default=None,
         description=(
             "Declared Validibot file-port key that produced this envelope item "
-            "(e.g., 'primary_model'). Optional for backwards-compatible rollout."
+            "(e.g., 'primary_model')."
         ),
     )
 
@@ -219,10 +264,14 @@ class InputFileItem(BaseModel):
         description="Storage URI to the file (gs:// or file:// for self-hosted)"
     )
 
-    model_config = {"extra": "forbid"}
+    @field_validator("name")
+    @classmethod
+    def _validate_safe_name(cls, value: str) -> str:
+        """Reject paths so runtimes choose the destination directory."""
+        return _safe_leaf_name(value)
 
 
-class ResourceFileItem(BaseModel):
+class ResourceFileItem(IntegrityBoundFile):
     """
     A resource file needed by the validator.
 
@@ -238,6 +287,8 @@ class ResourceFileItem(BaseModel):
 
     id: str = Field(description="Resource file UUID from Django database")
 
+    name: str = Field(description="Safe logical leaf name of the resource")
+
     type: str = Field(
         description="Resource type (e.g., 'weather', 'library', 'config')"
     )
@@ -246,13 +297,19 @@ class ResourceFileItem(BaseModel):
         default=None,
         description=(
             "Declared Validibot file-port key that produced this resource item "
-            "(e.g., 'weather_file'). Optional for backwards-compatible rollout."
+            "(e.g., 'weather_file')."
         ),
     )
 
     uri: str = Field(
         description="Storage URI to the file (gs:// or file:// for self-hosted)"
     )
+
+    @field_validator("name")
+    @classmethod
+    def _validate_safe_name(cls, value: str) -> str:
+        """Reject resource names that could escape the runtime workspace."""
+        return _safe_leaf_name(value)
 
     model_config = {"extra": "forbid"}
 
@@ -519,10 +576,10 @@ class ValidationMetric(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class ValidationArtifact(BaseModel):
+class ValidationArtifact(IntegrityBoundFile):
     """A file artifact produced by the validator."""
 
-    name: str = Field(description="Artifact name")
+    name: str = Field(description="Safe logical artifact leaf name")
 
     type: str = Field(
         description=(
@@ -538,9 +595,11 @@ class ValidationArtifact(BaseModel):
         description="Storage URI to the artifact (gs:// or file:// for self-hosted)"
     )
 
-    size_bytes: int | None = Field(default=None, description="File size in bytes")
-
-    model_config = {"extra": "forbid"}
+    @field_validator("name")
+    @classmethod
+    def _validate_safe_name(cls, value: str) -> str:
+        """Reject artifact names that could be interpreted as paths."""
+        return _safe_leaf_name(value)
 
 
 class RawOutputs(BaseModel):

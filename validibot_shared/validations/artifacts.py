@@ -10,7 +10,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 ARTIFACT_REF_SCHEMA_VERSION = "validibot.artifact_ref.v1"
 
@@ -134,11 +134,12 @@ class ArtifactRef(BaseModel):
     media_type: str = ""
     data_format: str = ""
     filename: str = ""
-    size_bytes: int | None = None
-    sha256: str = ""
+    size_bytes: int = Field(ge=0)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    storage_version: str = Field(min_length=1, max_length=512)
 
     uri: str = Field(
-        default="",
+        min_length=1,
         description="Internal storage URI; not a public download URL.",
     )
     manifest_uri: str = ""
@@ -153,3 +154,18 @@ class ArtifactRef(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"extra": "forbid"}
+
+    @field_validator("name")
+    @classmethod
+    def _validate_safe_name(cls, value: str) -> str:
+        """Artifact refs carry logical names, never materialization paths."""
+        if (
+            not value
+            or value in {".", ".."}
+            or "/" in value
+            or "\\" in value
+            or "\x00" in value
+        ):
+            msg = f"Artifact name must be a safe logical leaf name: {value!r}"
+            raise ValueError(msg)
+        return value

@@ -14,6 +14,7 @@ from validibot_shared.validations.envelopes import (
     ResourceFileItem,
     Severity,
     SupportedMimeType,
+    ValidationArtifact,
     ValidationCallback,
     ValidationInputEnvelope,
     ValidationMessage,
@@ -39,6 +40,9 @@ def _base_input_envelope_kwargs():
                 mime_type=SupportedMimeType.ENERGYPLUS_IDF,
                 role="primary-model",
                 uri="gs://bucket/model.idf",
+                size_bytes=123,
+                sha256="1" * 64,
+                storage_version="1700000000000000",
             )
         ],
         "context": ExecutionContext(
@@ -88,6 +92,18 @@ def test_strict_attempt_fixture_has_the_cross_repo_canonical_digest():
             "step_id": "step-fixture",
             "step_name": "Fixture Step",
         },
+        input_files=[
+            {
+                "name": "model.fmu",
+                "mime_type": SupportedMimeType.FMU,
+                "role": "fmu",
+                "port_key": "fmu_model",
+                "uri": "gs://fixture/runs/run-fixture/model.fmu",
+                "size_bytes": 12,
+                "sha256": "1" * 64,
+                "storage_version": "1700000000000000",
+            },
+        ],
         inputs={"alpha": 1},
         context={
             "execution_attempt_id": "attempt-fixture",
@@ -100,7 +116,7 @@ def test_strict_attempt_fixture_has_the_cross_repo_canonical_digest():
     )
 
     assert sha256_hex_for_model(envelope) == (
-        "0f4f7cd8b38a79dbc2c4ac66c1ed602cb4db59665d52b6df73cd409bdaf765c7"
+        "e17c5dae05c58f4d6034806e3f5e7a7602013d03f27ec811a97a9fc49f9d88d5"
     )
 
 
@@ -112,6 +128,9 @@ def test_input_file_item_accepts_optional_port_key():
         role="primary-model",
         port_key="primary_model",
         uri="gs://bucket/model.idf",
+        size_bytes=123,
+        sha256="1" * 64,
+        storage_version="1700000000000000",
     )
 
     assert item.port_key == "primary_model"
@@ -121,9 +140,13 @@ def test_resource_file_item_accepts_optional_port_key():
     """ResourceFileItem should carry declared file-port identity when available."""
     item = ResourceFileItem(
         id="resource-1",
+        name="weather.epw",
         type="energyplus_weather",
         port_key="weather_file",
         uri="gs://bucket/weather.epw",
+        size_bytes=456,
+        sha256="2" * 64,
+        storage_version="1700000000000001",
     )
 
     assert item.port_key == "weather_file"
@@ -137,7 +160,78 @@ def test_input_file_item_forbids_extra_fields():
             mime_type=SupportedMimeType.ENERGYPLUS_IDF,
             role="primary-model",
             uri="gs://bucket/model.idf",
+            size_bytes=123,
+            sha256="1" * 64,
+            storage_version="1700000000000000",
             extra_field="not-allowed",
+        )
+
+
+@pytest.mark.parametrize("missing", ["size_bytes", "sha256", "storage_version"])
+def test_input_file_item_requires_every_integrity_field(missing):
+    """A producer cannot emit a weaker file contract by omitting identity."""
+    payload = {
+        "name": "model.idf",
+        "mime_type": SupportedMimeType.ENERGYPLUS_IDF,
+        "role": "primary-model",
+        "uri": "gs://bucket/model.idf",
+        "size_bytes": 123,
+        "sha256": "1" * 64,
+        "storage_version": "1700000000000000",
+    }
+    payload.pop(missing)
+
+    with pytest.raises(ValidationError):
+        InputFileItem(**payload)
+
+
+@pytest.mark.parametrize("name", ["", ".", "..", "../model.idf", "a/b.idf", "a\\b.idf"])
+def test_file_item_names_must_be_safe_leaf_names(name):
+    """Logical names cannot redirect backend materialization outside its workspace."""
+    with pytest.raises(ValidationError):
+        InputFileItem(
+            name=name,
+            mime_type=SupportedMimeType.ENERGYPLUS_IDF,
+            uri="gs://bucket/model.idf",
+            size_bytes=123,
+            sha256="1" * 64,
+            storage_version="1700000000000000",
+        )
+
+
+def test_file_item_rejects_malformed_integrity_values():
+    """Negative sizes, non-SHA digests, and empty versions fail at parsing."""
+    with pytest.raises(ValidationError):
+        InputFileItem(
+            name="model.idf",
+            mime_type=SupportedMimeType.ENERGYPLUS_IDF,
+            uri="gs://bucket/model.idf",
+            size_bytes=-1,
+            sha256="not-a-sha256",
+            storage_version="",
+        )
+
+
+def test_validation_artifact_requires_byte_and_storage_identity():
+    """Output artifacts use the same mandatory integrity contract as inputs."""
+    artifact = ValidationArtifact(
+        name="report.csv",
+        type="timeseries-csv",
+        mime_type="text/csv",
+        uri="gs://bucket/outputs/report.csv",
+        size_bytes=456,
+        sha256="2" * 64,
+        storage_version="1700000000000001",
+    )
+
+    assert artifact.size_bytes == 456
+    assert artifact.sha256 == "2" * 64
+
+    with pytest.raises(ValidationError):
+        ValidationArtifact(
+            name="report.csv",
+            type="timeseries-csv",
+            uri="gs://bucket/outputs/report.csv",
         )
 
 

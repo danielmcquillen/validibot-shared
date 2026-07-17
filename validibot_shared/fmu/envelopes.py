@@ -129,6 +129,9 @@ def build_fmu_input_envelope(
     step_id: str,
     step_name: str | None,
     fmu_uri: str,
+    fmu_size_bytes: int,
+    fmu_sha256: str,
+    fmu_storage_version: str,
     input_values: dict[str, Any],
     callback_url: str,
     execution_bundle_uri: str,
@@ -150,6 +153,9 @@ def build_fmu_input_envelope(
         step_id: Workflow step ID
         step_name: Optional step name
         fmu_uri: FMU storage URI (gs://... or local path in dev)
+        fmu_size_bytes: Expected exact FMU size and streaming ceiling
+        fmu_sha256: Expected SHA-256 of the FMU bytes
+        fmu_storage_version: Immutable provider version for the FMU object
         input_values: Resolved inputs keyed by native FMU variable name
         callback_url: URL to POST callback
         execution_bundle_uri: Base URI/path for this run's files
@@ -164,6 +170,9 @@ def build_fmu_input_envelope(
             mime_type=SupportedMimeType.FMU,
             role="fmu",
             uri=fmu_uri,
+            size_bytes=fmu_size_bytes,
+            sha256=fmu_sha256,
+            storage_version=fmu_storage_version,
         )
     ]
 

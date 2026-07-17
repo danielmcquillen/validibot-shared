@@ -42,6 +42,9 @@ def _base_input_envelope_kwargs():
                 mime_type=SupportedMimeType.ENERGYPLUS_IDF,
                 role="primary-model",
                 uri="gs://bucket/model.idf",
+                size_bytes=123,
+                sha256="1" * 64,
+                storage_version="1700000000000000",
             )
         ],
         "context": ExecutionContext(

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-07-17
+
+### Changed (BREAKING)
+
+- Require every input, resource, and output artifact file item to carry its
+  exact byte size, lowercase SHA-256, and provider-specific immutable storage
+  version.
+- Require resource items to carry a safe logical leaf name and reject path-like
+  names across input, resource, and artifact items.
+- Extend the FMU, SHACL, and Schematron input builders with the required file
+  integrity arguments.
+
+### Notes
+
+- This is the shared-contract portion of the ADR-2026-07-10 streaming input
+  verification slice. Producers and validator runtimes must upgrade together;
+  there is no legacy or optional integrity mode.
+- The fixed cross-repository fixture now hashes to
+  `e17c5dae05c58f4d6034806e3f5e7a7602013d03f27ec811a97a9fc49f9d88d5`.
+
 ## [0.15.0] - 2026-07-17
 
 ### Changed (BREAKING)

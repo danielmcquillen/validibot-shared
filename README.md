@@ -133,8 +133,8 @@ Supporting models include:
 
 | Class | Purpose |
 |-------|---------|
-| `InputFileItem` | File reference with URI, MIME type, and role |
-| `ResourceFileItem` | Managed auxiliary file reference with URI and resource type |
+| `InputFileItem` | File reference with URI, MIME type, role, exact size, SHA-256, and immutable storage version |
+| `ResourceFileItem` | Managed auxiliary file reference with safe name, URI, resource type, and byte identity |
 | `ValidatorInfo` | Validator identification (ID, type, version) |
 | `ExecutionContext` | Callback URL, execution bundle URI, timeout |
 | `ValidationMessage` | Individual finding (error, warning, info) |
@@ -166,8 +166,10 @@ for bytes. For example, EnergyPlus timestep settings belong in
 `EnergyPlusInputs`; the IDF/epJSON model and EPW weather file belong in file
 ports rendered to `input_files` / `resource_files`.
 
-Backends should read files by role, and by future optional `port_key` when
-available, not by assuming `input_files[0]` forever.
+Backends should read files by role and `port_key` when available, not by
+assuming `input_files[0]` forever. Every file item commits to an exact size,
+SHA-256, and provider-specific immutable storage version; runtimes must verify
+those fields while streaming before a validator parses or executes the bytes.
 
 `ArtifactRef` and `FilePortContract` live in
 `validibot_shared.validations.artifacts`. `InputFileItem` and
@@ -223,6 +225,7 @@ validibot_shared/
 ```python
 from validibot_shared.energyplus import EnergyPlusInputEnvelope, EnergyPlusInputs
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
     InputFileItem,
     OrganizationInfo,
@@ -251,12 +254,21 @@ envelope = EnergyPlusInputEnvelope(
             mime_type=SupportedMimeType.ENERGYPLUS_IDF,
             role="primary-model",
             uri="gs://bucket/model.idf",
+            size_bytes=12345,
+            sha256="0123456789abcdef" * 4,
+            storage_version="1700000000000000",
         ),
     ],
     inputs=EnergyPlusInputs(timestep_per_hour=4),
     context=ExecutionContext(
         callback_url="https://api.example.com/callback",
-        execution_bundle_uri="gs://bucket/run-123/",
+        execution_bundle_uri="gs://bucket/runs/org-123/run-123/attempts/attempt-123/",
+        execution_attempt_id="attempt-123",
+        step_run_id="step-run-789",
+        attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+        expected_output_uri=(
+            "gs://bucket/runs/org-123/run-123/attempts/attempt-123/output.json"
+        ),
     ),
 )
 

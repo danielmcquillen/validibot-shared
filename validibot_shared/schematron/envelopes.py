@@ -242,6 +242,9 @@ def build_schematron_input_envelope(
     step_id: str,
     step_name: str | None,
     submission_uri: str,
+    submission_size_bytes: int,
+    submission_sha256: str,
+    submission_storage_version: str,
     inputs: SchematronInputs,
     callback_url: str,
     execution_bundle_uri: str,
@@ -259,6 +262,9 @@ def build_schematron_input_envelope(
         org_id / org_name: Organization identity.
         workflow_id / step_id / step_name: Workflow context.
         submission_uri: Storage URI for the XML submission (gs:// or file://).
+        submission_size_bytes: Expected exact submission size and byte ceiling.
+        submission_sha256: Expected SHA-256 of the XML submission.
+        submission_storage_version: Immutable provider version for the object.
         inputs: Fully-resolved ``SchematronInputs`` (inline rules + limits).
         callback_url: URL the container POSTs to on completion.
         execution_bundle_uri: Base URI for this run's bundle.
@@ -271,6 +277,9 @@ def build_schematron_input_envelope(
             mime_type=SupportedMimeType.APPLICATION_XML,
             role="primary-model",
             uri=submission_uri,
+            size_bytes=submission_size_bytes,
+            sha256=submission_sha256,
+            storage_version=submission_storage_version,
         ),
     ]
 
