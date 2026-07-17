@@ -300,6 +300,8 @@ def build_shacl_input_envelope(
     step_run_id: str,
     expected_output_uri: str,
     callback_id: str | None = None,
+    callback_nonce: str | None = None,
+    callback_nonce_commitment: str | None = None,
     skip_callback: bool = False,
 ) -> SHACLInputEnvelope:
     """Build a ``SHACLInputEnvelope`` from Django validation data.
@@ -317,6 +319,8 @@ def build_shacl_input_envelope(
         callback_url: URL the container POSTs to on completion.
         execution_bundle_uri: Base URI for this run's bundle.
         callback_id: Idempotency key echoed back in the callback.
+        callback_nonce: Per-attempt secret returned in the callback payload.
+        callback_nonce_commitment: Public commitment to ``callback_nonce``.
         skip_callback: True for synchronous (Docker) execution.
     """
     input_files = [
@@ -337,6 +341,8 @@ def build_shacl_input_envelope(
         attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
         expected_output_uri=expected_output_uri,
         callback_id=callback_id,
+        callback_nonce=callback_nonce,
+        callback_nonce_commitment=callback_nonce_commitment,
         callback_url=callback_url,
         execution_bundle_uri=execution_bundle_uri,
         skip_callback=skip_callback,

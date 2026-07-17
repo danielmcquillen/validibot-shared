@@ -5,7 +5,10 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from validibot_shared.canonicalization import sha256_hex_for_model
+from validibot_shared.canonicalization import (
+    compute_callback_nonce_commitment,
+    sha256_hex_for_model,
+)
 from validibot_shared.validations.envelopes import (
     ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
@@ -21,6 +24,11 @@ from validibot_shared.validations.envelopes import (
     ValidationOutputEnvelope,
     ValidationStatus,
     ValidatorType,
+)
+
+TEST_CALLBACK_NONCE = "A" * 43
+TEST_CALLBACK_NONCE_COMMITMENT = compute_callback_nonce_commitment(
+    TEST_CALLBACK_NONCE,
 )
 
 
@@ -47,6 +55,9 @@ def _base_input_envelope_kwargs():
         ],
         "context": ExecutionContext(
             callback_url="https://example.com/callback",
+            callback_id="execution-attempt-attempt-42",
+            callback_nonce=TEST_CALLBACK_NONCE,
+            callback_nonce_commitment=TEST_CALLBACK_NONCE_COMMITMENT,
             execution_bundle_uri="gs://bucket/run-42/",
             execution_attempt_id="attempt-42",
             step_run_id="step-run-42",
@@ -111,12 +122,17 @@ def test_strict_attempt_fixture_has_the_cross_repo_canonical_digest():
             "attempt_contract_version": ATTEMPT_CONTRACT_VERSION,
             "expected_output_uri": "gs://fixture/runs/run-fixture/output.json",
             "execution_bundle_uri": "gs://fixture/runs/run-fixture/",
-            "skip_callback": True,
+            "callback_url": "https://example.com/callback",
+            "callback_id": "execution-attempt-attempt-fixture",
+            "callback_nonce": ("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"),
+            "callback_nonce_commitment": compute_callback_nonce_commitment(
+                "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            ),
         },
     )
 
     assert sha256_hex_for_model(envelope) == (
-        "e17c5dae05c58f4d6034806e3f5e7a7602013d03f27ec811a97a9fc49f9d88d5"
+        "a212b9aaad3aca508a88608d70fd75b5642a8c0e20876308887789dc5bbfb64d"
     )
 
 
@@ -294,6 +310,8 @@ def test_validation_callback_serialization():
     """ValidationCallback should serialize correctly."""
     callback = ValidationCallback(
         run_id="run-101",
+        callback_id="execution-attempt-attempt-101",
+        callback_nonce=TEST_CALLBACK_NONCE,
         status=ValidationStatus.FAILED_RUNTIME,
         result_uri="gs://bucket/run-101/output.json",
     )

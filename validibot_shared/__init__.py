@@ -3,6 +3,7 @@
 from validibot_shared.canonicalization import (
     canonicalize_dict,
     canonicalize_model,
+    compute_callback_nonce_commitment,
     sha256_hex_for_dict,
     sha256_hex_for_model,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "ContractSignalMapping",
     "canonicalize_dict",
     "canonicalize_model",
+    "compute_callback_nonce_commitment",
     "EnergyPlusSimulationLogs",
     "EnergyPlusSimulationMetrics",
     "EnergyPlusSimulationOutputs",

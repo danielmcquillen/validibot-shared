@@ -138,6 +138,10 @@ def build_fmu_input_envelope(
     execution_attempt_id: str,
     step_run_id: str,
     expected_output_uri: str,
+    callback_id: str | None = None,
+    callback_nonce: str | None = None,
+    callback_nonce_commitment: str | None = None,
+    skip_callback: bool = False,
     simulation: FMUSimulationConfig | None = None,
     output_variables: list[str] | None = None,
 ) -> FMUInputEnvelope:
@@ -158,6 +162,10 @@ def build_fmu_input_envelope(
         fmu_storage_version: Immutable provider version for the FMU object
         input_values: Resolved inputs keyed by native FMU variable name
         callback_url: URL to POST callback
+        callback_id: Attempt-bound callback idempotency identifier
+        callback_nonce: Per-attempt secret returned in the callback payload
+        callback_nonce_commitment: Public commitment to ``callback_nonce``
+        skip_callback: True for synchronous execution
         execution_bundle_uri: Base URI/path for this run's files
         simulation: Optional FMUSimulationConfig
         output_variables: Optional list of native FMU variable
@@ -187,8 +195,12 @@ def build_fmu_input_envelope(
         step_run_id=step_run_id,
         attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
         expected_output_uri=expected_output_uri,
+        callback_id=callback_id,
+        callback_nonce=callback_nonce,
+        callback_nonce_commitment=callback_nonce_commitment,
         callback_url=callback_url,
         execution_bundle_uri=execution_bundle_uri,
+        skip_callback=skip_callback,
     )
 
     envelope = FMUInputEnvelope(

@@ -20,6 +20,7 @@ We therefore assert three things:
 import pytest
 from pydantic import ValidationError
 
+from validibot_shared.canonicalization import compute_callback_nonce_commitment
 from validibot_shared.shacl.envelopes import (
     SHACL_RESULT_REPORT_ONLY,
     SHACLInputEnvelope,
@@ -54,6 +55,10 @@ EXPECTED_SIGNAL_KEYS = {
     "shacl_info_count",
     "shacl_total_count",
 }
+TEST_CALLBACK_NONCE = "A" * 43
+TEST_CALLBACK_NONCE_COMMITMENT = compute_callback_nonce_commitment(
+    TEST_CALLBACK_NONCE,
+)
 
 
 def _base_kwargs():
@@ -65,6 +70,9 @@ def _base_kwargs():
         "workflow": {"id": "wf-1", "step_id": "step-1", "step_name": "SHACL"},
         "context": ExecutionContext(
             callback_url="https://example.com/cb",
+            callback_id="execution-attempt-attempt-123",
+            callback_nonce=TEST_CALLBACK_NONCE,
+            callback_nonce_commitment=TEST_CALLBACK_NONCE_COMMITMENT,
             execution_bundle_uri="gs://bucket/run-123/",
             execution_attempt_id="attempt-123",
             step_run_id="step-run-123",

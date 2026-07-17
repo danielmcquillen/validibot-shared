@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-07-17
+
+### Changed (BREAKING)
+
+- Advance the strict execution contract to `validibot.attempt.v2`.
+- Require enabled asynchronous callbacks to carry an attempt-bound callback
+  ID, raw nonce, and matching public nonce commitment.
+- Require callback payloads to return the raw nonce so Django can authenticate
+  the sender against its per-attempt verifier.
+- Canonicalize input envelopes by removing the raw callback nonce and retaining
+  only `SHA-256("validibot-callback-nonce\0" || nonce)`.
+- Extend the FMU, SHACL, and Schematron input builders with callback nonce
+  fields while preserving nonce-free synchronous execution.
+
+### Notes
+
+- Producers and validator runtimes must upgrade together; attempt-v1 envelopes
+  are rejected rather than accepted without callback-secret authentication.
+- The raw callback nonce never appears in canonical input bytes or output
+  envelopes. Its public commitment can safely participate in evidence.
+- The fixed cross-repository nonce fixture hashes to
+  `a212b9aaad3aca508a88608d70fd75b5642a8c0e20876308887789dc5bbfb64d`.
+
 ## [0.16.0] - 2026-07-17
 
 ### Changed (BREAKING)

@@ -136,7 +136,7 @@ Supporting models include:
 | `InputFileItem` | File reference with URI, MIME type, role, exact size, SHA-256, and immutable storage version |
 | `ResourceFileItem` | Managed auxiliary file reference with safe name, URI, resource type, and byte identity |
 | `ValidatorInfo` | Validator identification (ID, type, version) |
-| `ExecutionContext` | Callback URL, execution bundle URI, timeout |
+| `ExecutionContext` | Attempt identity, callback nonce commitment, bundle URI, and timeout |
 | `ValidationMessage` | Individual finding (error, warning, info) |
 | `ValidationMetric` | Named numeric metric with optional unit |
 | `ValidationArtifact` | Output file reference (reports, logs, etc.) |
@@ -223,6 +223,9 @@ validibot_shared/
 ### Creating an Input Envelope
 
 ```python
+import secrets
+
+from validibot_shared.canonicalization import compute_callback_nonce_commitment
 from validibot_shared.energyplus import EnergyPlusInputEnvelope, EnergyPlusInputs
 from validibot_shared.validations.envelopes import (
     ATTEMPT_CONTRACT_VERSION,
@@ -234,6 +237,8 @@ from validibot_shared.validations.envelopes import (
     ValidatorType,
     WorkflowInfo,
 )
+
+callback_nonce = secrets.token_urlsafe(32)
 
 envelope = EnergyPlusInputEnvelope(
     run_id="run-123",
@@ -262,6 +267,9 @@ envelope = EnergyPlusInputEnvelope(
     inputs=EnergyPlusInputs(timestep_per_hour=4),
     context=ExecutionContext(
         callback_url="https://api.example.com/callback",
+        callback_id="execution-attempt-attempt-123",
+        callback_nonce=callback_nonce,
+        callback_nonce_commitment=compute_callback_nonce_commitment(callback_nonce),
         execution_bundle_uri="gs://bucket/runs/org-123/run-123/attempts/attempt-123/",
         execution_attempt_id="attempt-123",
         step_run_id="step-run-789",

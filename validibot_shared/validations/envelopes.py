@@ -100,6 +100,8 @@ Django deserializes using the correct subclass based on validator.type.
 The callback is a minimal async notification sent from the validator backend
 back to the Django app when work completes. It contains only:
 - run_id: Which job finished
+- callback_id: Which execution attempt is delivering the result
+- callback_nonce: Proof that the sender received that attempt's input envelope
 - status: success/failed_validation/failed_runtime/cancelled
 - result_uri: Storage path to full output.json
 
@@ -113,13 +115,19 @@ for the full specification.
 
 from __future__ import annotations
 
+import hmac
 from datetime import datetime  # noqa: TC003
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
-ATTEMPT_CONTRACT_VERSION = "validibot.attempt.v1"
+from validibot_shared.canonicalization import compute_callback_nonce_commitment
+
+ATTEMPT_CONTRACT_VERSION = "validibot.attempt.v2"
+CALLBACK_NONCE_MIN_LENGTH = 43
+CALLBACK_NONCE_MAX_LENGTH = 512
+CALLBACK_NONCE_PATTERN = r"^[A-Za-z0-9_-]+$"
 
 # ==============================================================================
 # Shared Enums
@@ -395,7 +403,7 @@ class ExecutionContext(BaseModel):
         description="ValidationStepRun identity this attempt executes.",
     )
 
-    attempt_contract_version: Literal["validibot.attempt.v1"] = Field(
+    attempt_contract_version: Literal["validibot.attempt.v2"] = Field(
         description="Strict attempt I/O contract version.",
     )
 
@@ -411,6 +419,24 @@ class ExecutionContext(BaseModel):
             "Generated at job launch and echoed back in the callback payload. "
             "The callback handler uses this to detect and ignore duplicate deliveries."
         ),
+    )
+
+    callback_nonce: str | None = Field(
+        default=None,
+        min_length=CALLBACK_NONCE_MIN_LENGTH,
+        max_length=CALLBACK_NONCE_MAX_LENGTH,
+        pattern=CALLBACK_NONCE_PATTERN,
+        repr=False,
+        description=(
+            "Per-attempt secret returned only in the callback payload. The raw "
+            "value is removed from canonical envelope hashing."
+        ),
+    )
+
+    callback_nonce_commitment: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+        description=("Public domain-separated SHA-256 commitment to callback_nonce."),
     )
 
     callback_url: HttpUrl | None = Field(
@@ -437,6 +463,35 @@ class ExecutionContext(BaseModel):
     tags: list[str] = Field(default_factory=list, description="Execution tags")
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def validate_callback_nonce_contract(self) -> ExecutionContext:
+        """Require one matching nonce pair whenever callbacks are enabled."""
+        has_nonce = self.callback_nonce is not None
+        has_commitment = self.callback_nonce_commitment is not None
+        if has_nonce != has_commitment:
+            msg = (
+                "callback_nonce and callback_nonce_commitment must be provided together"
+            )
+            raise ValueError(msg)
+
+        if self.callback_nonce is not None:
+            expected = compute_callback_nonce_commitment(self.callback_nonce)
+            if not hmac.compare_digest(expected, self.callback_nonce_commitment or ""):
+                msg = "callback_nonce_commitment does not match callback_nonce"
+                raise ValueError(msg)
+
+        callback_enabled = self.callback_url is not None and not self.skip_callback
+        if callback_enabled and not self.callback_id:
+            msg = "callback_id is required when callbacks are enabled"
+            raise ValueError(msg)
+        if callback_enabled and not has_nonce:
+            msg = (
+                "callback_nonce and callback_nonce_commitment are required when "
+                "callbacks are enabled"
+            )
+            raise ValueError(msg)
+        return self
 
 
 class ValidationInputEnvelope(BaseModel):
@@ -707,7 +762,7 @@ class ValidationOutputEnvelope(BaseModel):
         description="ExecutionAttempt identity echoed from the input contract.",
     )
 
-    attempt_contract_version: Literal["validibot.attempt.v1"] = Field(
+    attempt_contract_version: Literal["validibot.attempt.v2"] = Field(
         description="Strict attempt I/O contract version echoed from input.",
     )
 
@@ -766,12 +821,20 @@ class ValidationCallback(BaseModel):
 
     run_id: str = Field(description="Run identifier")
 
-    callback_id: str | None = Field(
-        default=None,
+    callback_id: str = Field(
+        min_length=1,
         description=(
             "Idempotency key echoed from the input envelope's context.callback_id. "
             "Used by the callback handler to detect and ignore duplicate deliveries."
         ),
+    )
+
+    callback_nonce: str = Field(
+        min_length=CALLBACK_NONCE_MIN_LENGTH,
+        max_length=CALLBACK_NONCE_MAX_LENGTH,
+        pattern=CALLBACK_NONCE_PATTERN,
+        repr=False,
+        description=("Raw per-attempt callback secret echoed from the input envelope."),
     )
 
     status: ValidationStatus

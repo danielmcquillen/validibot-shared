@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from validibot_shared.canonicalization import compute_callback_nonce_commitment
 from validibot_shared.fmu.envelopes import (
     FMUInputEnvelope,
     FMUOutputs,
@@ -18,6 +19,10 @@ from validibot_shared.validations.envelopes import (
 # Test constants
 TEST_EXECUTION_SECONDS = 2.5
 TEST_STOP_TIME = 10
+TEST_CALLBACK_NONCE = "A" * 43
+TEST_CALLBACK_NONCE_COMMITMENT = compute_callback_nonce_commitment(
+    TEST_CALLBACK_NONCE,
+)
 
 
 def _base_kwargs():
@@ -28,6 +33,9 @@ def _base_kwargs():
         "workflow": {"id": "wf-1", "step_id": "step-1", "step_name": "FMU"},
         "context": ExecutionContext(
             callback_url="https://example.com/cb",
+            callback_id="execution-attempt-attempt-123",
+            callback_nonce=TEST_CALLBACK_NONCE,
+            callback_nonce_commitment=TEST_CALLBACK_NONCE_COMMITMENT,
             execution_bundle_uri="gs://bucket/run-123/",
             execution_attempt_id="attempt-123",
             step_run_id="step-run-123",
@@ -103,6 +111,9 @@ def test_build_fmu_input_envelope_constructs_expected_payload():
         fmu_storage_version="1700000000000000",
         input_values={"u1": 1.0},
         callback_url="https://example.com/callback",
+        callback_id="execution-attempt-attempt-1",
+        callback_nonce=TEST_CALLBACK_NONCE,
+        callback_nonce_commitment=TEST_CALLBACK_NONCE_COMMITMENT,
         execution_bundle_uri="gs://bucket/run-1/",
         execution_attempt_id="attempt-1",
         step_run_id="step-run-1",

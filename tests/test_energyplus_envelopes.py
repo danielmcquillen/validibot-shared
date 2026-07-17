@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from validibot_shared.canonicalization import compute_callback_nonce_commitment
 from validibot_shared.energyplus.envelopes import (
     EnergyPlusInputEnvelope,
     EnergyPlusInputs,
@@ -24,6 +25,10 @@ TEST_TIMESTEP_PER_HOUR = 6
 TEST_ELECTRICITY_KWH = 123.4
 TEST_EXECUTION_SECONDS = 12.5
 TEST_EUI_KWH_M2 = 10.5
+TEST_CALLBACK_NONCE = "A" * 43
+TEST_CALLBACK_NONCE_COMMITMENT = compute_callback_nonce_commitment(
+    TEST_CALLBACK_NONCE,
+)
 
 
 def _base_input_envelope_kwargs():
@@ -49,6 +54,9 @@ def _base_input_envelope_kwargs():
         ],
         "context": ExecutionContext(
             callback_url="https://example.com/callback",
+            callback_id="execution-attempt-attempt-1",
+            callback_nonce=TEST_CALLBACK_NONCE,
+            callback_nonce_commitment=TEST_CALLBACK_NONCE_COMMITMENT,
             execution_bundle_uri="gs://bucket/run-1/",
             execution_attempt_id="attempt-1",
             step_run_id="step-run-1",
