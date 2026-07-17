@@ -30,6 +30,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
     InputFileItem,
     SupportedMimeType,
@@ -244,6 +245,9 @@ def build_schematron_input_envelope(
     inputs: SchematronInputs,
     callback_url: str,
     execution_bundle_uri: str,
+    execution_attempt_id: str,
+    step_run_id: str,
+    expected_output_uri: str,
     callback_id: str | None = None,
     skip_callback: bool = False,
 ) -> SchematronInputEnvelope:
@@ -271,6 +275,10 @@ def build_schematron_input_envelope(
     ]
 
     context = ExecutionContext(
+        execution_attempt_id=execution_attempt_id,
+        step_run_id=step_run_id,
+        attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+        expected_output_uri=expected_output_uri,
         callback_id=callback_id,
         callback_url=callback_url,
         execution_bundle_uri=execution_bundle_uri,

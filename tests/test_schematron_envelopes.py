@@ -24,6 +24,7 @@ from validibot_shared.schematron.envelopes import (
     build_schematron_input_envelope,
 )
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     SupportedMimeType,
     ValidationStatus,
     ValidatorType,
@@ -121,6 +122,11 @@ def test_engine_failure_shapes_round_trip():
     ):
         envelope = SchematronOutputEnvelope(
             run_id="run-1",
+            step_run_id="step-run-1",
+            execution_attempt_id="attempt-1",
+            attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+            input_envelope_sha256="a" * 64,
+            output_uri="gs://bucket/run-1/output.json",
             validator={"id": "v1", "type": ValidatorType.SCHEMATRON, "version": "1"},
             status=status,
             timing={},
@@ -193,6 +199,9 @@ def test_build_schematron_input_envelope_assembles_the_xml_submission():
         inputs=_inputs(),
         callback_url="https://example.com/callback",
         execution_bundle_uri="gs://bucket/run-1/",
+        execution_attempt_id="attempt-1",
+        step_run_id="step-run-1",
+        expected_output_uri="gs://bucket/run-1/output.json",
     )
 
     assert isinstance(envelope, SchematronInputEnvelope)

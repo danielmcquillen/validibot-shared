@@ -31,6 +31,7 @@ from validibot_shared.shacl.envelopes import (
     mime_type_for_rdf_format,
 )
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
     SupportedMimeType,
     ValidationStatus,
@@ -65,6 +66,10 @@ def _base_kwargs():
         "context": ExecutionContext(
             callback_url="https://example.com/cb",
             execution_bundle_uri="gs://bucket/run-123/",
+            execution_attempt_id="attempt-123",
+            step_run_id="step-run-123",
+            attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+            expected_output_uri="gs://bucket/run-123/output.json",
         ),
     }
 
@@ -157,6 +162,9 @@ def test_build_shacl_input_envelope_constructs_expected_payload():
         inputs=inputs,
         callback_url="https://example.com/callback",
         execution_bundle_uri="gs://bucket/run-1/",
+        execution_attempt_id="attempt-1",
+        step_run_id="step-run-1",
+        expected_output_uri="gs://bucket/run-1/output.json",
         skip_callback=True,
     )
 
@@ -223,6 +231,11 @@ def test_shacl_output_envelope_round_trips():
     """
     envelope = SHACLOutputEnvelope(
         run_id="run-123",
+        step_run_id="step-run-123",
+        execution_attempt_id="attempt-123",
+        attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+        input_envelope_sha256="a" * 64,
+        output_uri="gs://bucket/run-123/output.json",
         validator={"id": "val-1", "type": ValidatorType.SHACL, "version": "1"},
         status=ValidationStatus.FAILED_VALIDATION,
         timing={},
@@ -259,6 +272,11 @@ def test_shacl_output_envelope_allows_none_outputs():
     """
     envelope = SHACLOutputEnvelope(
         run_id="run-123",
+        step_run_id="step-run-123",
+        execution_attempt_id="attempt-123",
+        attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+        input_envelope_sha256="a" * 64,
+        output_uri="gs://bucket/run-123/output.json",
         validator={"id": "val-1", "type": ValidatorType.SHACL, "version": "1"},
         status=ValidationStatus.FAILED_RUNTIME,
         timing={},

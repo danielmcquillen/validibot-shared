@@ -119,6 +119,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
+ATTEMPT_CONTRACT_VERSION = "validibot.attempt.v1"
+
 # ==============================================================================
 # Shared Enums
 # ==============================================================================
@@ -325,6 +327,25 @@ class ExecutionContext(BaseModel):
     3. Notify Django when complete (callback_url)
     4. Respect timeout constraints (timeout_seconds)
     """
+
+    execution_attempt_id: str = Field(
+        min_length=1,
+        description="ExecutionAttempt UUID selected by the trusted application.",
+    )
+
+    step_run_id: str = Field(
+        min_length=1,
+        description="ValidationStepRun identity this attempt executes.",
+    )
+
+    attempt_contract_version: Literal["validibot.attempt.v1"] = Field(
+        description="Strict attempt I/O contract version.",
+    )
+
+    expected_output_uri: str = Field(
+        min_length=1,
+        description="Exact output-envelope identity selected before dispatch.",
+    )
 
     callback_id: str | None = Field(
         default=None,
@@ -616,6 +637,30 @@ class ValidationOutputEnvelope(BaseModel):
     schema_version: Literal["validibot.output.v1"] = "validibot.output.v1"
 
     run_id: str = Field(description="Unique run identifier (matches input)")
+
+    step_run_id: str = Field(
+        min_length=1,
+        description="ValidationStepRun identity echoed from the input contract.",
+    )
+
+    execution_attempt_id: str = Field(
+        min_length=1,
+        description="ExecutionAttempt identity echoed from the input contract.",
+    )
+
+    attempt_contract_version: Literal["validibot.attempt.v1"] = Field(
+        description="Strict attempt I/O contract version echoed from input.",
+    )
+
+    input_envelope_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Canonical SHA-256 of the exact parsed input envelope.",
+    )
+
+    output_uri: str = Field(
+        min_length=1,
+        description="Exact output-envelope URI selected by the input contract.",
+    )
 
     validator: ValidatorInfo
 

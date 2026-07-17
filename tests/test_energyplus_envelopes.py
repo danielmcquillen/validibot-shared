@@ -10,6 +10,7 @@ from validibot_shared.energyplus.envelopes import (
     EnergyPlusOutputs,
 )
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
     InputFileItem,
     SupportedMimeType,
@@ -46,6 +47,10 @@ def _base_input_envelope_kwargs():
         "context": ExecutionContext(
             callback_url="https://example.com/callback",
             execution_bundle_uri="gs://bucket/run-1/",
+            execution_attempt_id="attempt-1",
+            step_run_id="step-run-1",
+            attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+            expected_output_uri="gs://bucket/run-1/output.json",
             timeout_seconds=600,
             tags=["smoke"],
         ),
@@ -125,6 +130,11 @@ def test_energyplus_output_envelope_accepts_typed_outputs():
     """EnergyPlusOutputEnvelope should accept typed outputs."""
     envelope = EnergyPlusOutputEnvelope(
         run_id="run-2",
+        step_run_id="step-run-2",
+        execution_attempt_id="attempt-2",
+        attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+        input_envelope_sha256="a" * 64,
+        output_uri="gs://bucket/run-2/output.json",
         validator={
             "id": "val-1",
             "type": ValidatorType.ENERGYPLUS,

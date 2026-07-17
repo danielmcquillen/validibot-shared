@@ -5,7 +5,9 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
+from validibot_shared.canonicalization import sha256_hex_for_model
 from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
     ExecutionContext,
     InputFileItem,
     MessageLocation,
@@ -42,7 +44,22 @@ def _base_input_envelope_kwargs():
         "context": ExecutionContext(
             callback_url="https://example.com/callback",
             execution_bundle_uri="gs://bucket/run-42/",
+            execution_attempt_id="attempt-42",
+            step_run_id="step-run-42",
+            attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+            expected_output_uri="gs://bucket/run-42/output.json",
         ),
+    }
+
+
+def _output_identity_kwargs():
+    """Return the immutable execution-attempt identity required on outputs."""
+    return {
+        "step_run_id": "step-run-99",
+        "execution_attempt_id": "attempt-99",
+        "attempt_contract_version": ATTEMPT_CONTRACT_VERSION,
+        "input_envelope_sha256": "a" * 64,
+        "output_uri": "gs://bucket/run-99/output.json",
     }
 
 
@@ -54,6 +71,37 @@ def test_validation_input_envelope_defaults_schema_version():
     assert envelope.input_files[0].role == "primary-model"
     assert envelope.input_files[0].port_key is None
     assert envelope.inputs == {}
+
+
+def test_strict_attempt_fixture_has_the_cross_repo_canonical_digest():
+    """All producers and consumers must hash the same attempt fixture bytes."""
+    envelope = ValidationInputEnvelope(
+        run_id="run-fixture",
+        validator={
+            "id": "validator-fixture",
+            "type": ValidatorType.FMU,
+            "version": "1",
+        },
+        org={"id": "org-fixture", "name": "Fixture Org"},
+        workflow={
+            "id": "workflow-fixture",
+            "step_id": "step-fixture",
+            "step_name": "Fixture Step",
+        },
+        inputs={"alpha": 1},
+        context={
+            "execution_attempt_id": "attempt-fixture",
+            "step_run_id": "step-run-fixture",
+            "attempt_contract_version": ATTEMPT_CONTRACT_VERSION,
+            "expected_output_uri": "gs://fixture/runs/run-fixture/output.json",
+            "execution_bundle_uri": "gs://fixture/runs/run-fixture/",
+            "skip_callback": True,
+        },
+    )
+
+    assert sha256_hex_for_model(envelope) == (
+        "0f4f7cd8b38a79dbc2c4ac66c1ed602cb4db59665d52b6df73cd409bdaf765c7"
+    )
 
 
 def test_input_file_item_accepts_optional_port_key():
@@ -114,6 +162,7 @@ def test_validation_output_envelope_defaults_and_status_enum():
 
     envelope = ValidationOutputEnvelope(
         run_id="run-99",
+        **_output_identity_kwargs(),
         validator={
             "id": "val-1",
             "type": ValidatorType.ENERGYPLUS,
@@ -136,6 +185,7 @@ def test_validation_output_envelope_rejects_invalid_status():
     with pytest.raises(ValidationError):
         ValidationOutputEnvelope(
             run_id="run-100",
+            **_output_identity_kwargs(),
             validator={
                 "id": "val-1",
                 "type": ValidatorType.ENERGYPLUS,

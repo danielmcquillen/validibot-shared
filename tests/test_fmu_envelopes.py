@@ -9,7 +9,11 @@ from validibot_shared.fmu.envelopes import (
     FMUSimulationConfig,
     build_fmu_input_envelope,
 )
-from validibot_shared.validations.envelopes import ExecutionContext, ValidatorType
+from validibot_shared.validations.envelopes import (
+    ATTEMPT_CONTRACT_VERSION,
+    ExecutionContext,
+    ValidatorType,
+)
 
 # Test constants
 TEST_EXECUTION_SECONDS = 2.5
@@ -25,6 +29,10 @@ def _base_kwargs():
         "context": ExecutionContext(
             callback_url="https://example.com/cb",
             execution_bundle_uri="gs://bucket/run-123/",
+            execution_attempt_id="attempt-123",
+            step_run_id="step-run-123",
+            attempt_contract_version=ATTEMPT_CONTRACT_VERSION,
+            expected_output_uri="gs://bucket/run-123/output.json",
         ),
     }
 
@@ -93,6 +101,9 @@ def test_build_fmu_input_envelope_constructs_expected_payload():
         input_values={"u1": 1.0},
         callback_url="https://example.com/callback",
         execution_bundle_uri="gs://bucket/run-1/",
+        execution_attempt_id="attempt-1",
+        step_run_id="step-run-1",
+        expected_output_uri="gs://bucket/run-1/output.json",
         output_variables=["y"],
     )
 

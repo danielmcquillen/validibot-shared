@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-07-17
+
+### Changed (BREAKING)
+
+- Require every validator input context to identify its execution attempt,
+  step run, attempt-contract version, and exact expected output URI.
+- Require every validator output envelope to echo that identity together with
+  the canonical input-envelope SHA-256 and actual output URI.
+- Extend the FMU, SHACL, and Schematron input builders with the required
+  attempt identity arguments.
+
+### Notes
+
+- This is the coordinated strict-attempt-contract slice of
+  ADR-2026-07-10. All envelope producers and consumers must upgrade together.
+- The fixed cross-repository fixture hashes to
+  `0f4f7cd8b38a79dbc2c4ac66c1ed602cb4db59665d52b6df73cd409bdaf765c7`
+  using the shared RFC 8785/JCS canonicalization helper.
+
 ## [0.14.0] - 2026-07-15
 
 ### Added
