@@ -252,10 +252,11 @@ class ManifestPayloadDigests(BaseModel):
     input_sha256: str | None = Field(
         default=None,
         description=(
-            "SHA-256 hex of the submission's primary file bytes at run "
-            "time. Always present in Session B — even when "
-            "DO_NOT_STORE purges the bytes themselves, the hash is "
-            "the immutable proof the run consumed input matching it."
+            "SHA-256 hex of the submission's primary file bytes accepted by "
+            "the producer. Always present in Session B, even when "
+            "DO_NOT_STORE purges the bytes themselves. This does not by "
+            "itself claim the same bytes crossed the execution boundary; "
+            "execution_attempts records that identity and any transformation."
         ),
     )
     output_envelope_sha256: str | None = Field(
@@ -309,6 +310,13 @@ class ManifestProducedArtifact(BaseModel):
     data_format: str = Field(default="", description="Domain data format.")
     size_bytes: int | None = Field(default=None, description="Artifact byte size.")
     sha256: str = Field(default="", description="SHA-256 of artifact bytes.")
+    storage_version: str = Field(
+        default="",
+        description=(
+            "Provider-specific immutable storage version verified for the "
+            "artifact. Empty for producers predating strict artifact identity."
+        ),
+    )
     manifest_sha256: str = Field(
         default="",
         description="SHA-256 of the validator output manifest, if present.",
@@ -390,6 +398,13 @@ class ManifestArtifactInputBinding(BaseModel):
     )
     source_size_bytes: int | None = Field(default=None)
     source_sha256: str = Field(default="", description="Resolved source SHA-256.")
+    source_storage_version: str = Field(
+        default="",
+        description=(
+            "Immutable storage version used for this binding. Empty for "
+            "unresolved inputs or producers predating strict file identity."
+        ),
+    )
     producer_step_key: str = Field(
         default="",
         description="Producer step key for upstream_artifact bindings.",
@@ -419,6 +434,173 @@ class ManifestArtifactLineageEdge(BaseModel):
     target_step_key: str = Field(description="Consumer step key.")
     target_port_key: str = Field(description="Consumer artifact input port key.")
     target_step_run_id: str = Field(default="", description="Consumer step-run id.")
+
+
+class ManifestExecutionInput(BaseModel):
+    """URI-free identity of one file committed to an execution envelope.
+
+    The trusted producer copies these fields from the immutable input envelope
+    bound to an execution attempt. The strict runtime contract verifies the
+    exact size, digest, and storage version while streaming before domain
+    processing. ``ManifestExecutionAttempt.inputs_verified`` tells consumers
+    whether trusted completion confirmed that verification boundary was crossed.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    channel: Literal["input_files", "resource_files"] = Field(
+        description="Input-envelope collection that carried this file.",
+    )
+    name: str = Field(description="Safe logical leaf name from the input envelope.")
+    role: str = Field(
+        default="",
+        description="Validator-facing role for an input file.",
+    )
+    resource_type: str = Field(
+        default="",
+        description="Validator-facing resource type for a resource file.",
+    )
+    port_key: str = Field(
+        default="",
+        description="Stable Validibot file-port key, when declared.",
+    )
+    resource_id: str = Field(
+        default="",
+        description="Producer-side resource identifier, for resource files.",
+    )
+    media_type: str = Field(
+        default="",
+        description="Declared media type, when the envelope supplies one.",
+    )
+    size_bytes: int = Field(
+        ge=0,
+        description="Exact byte size enforced by the runtime's streaming read.",
+    )
+    sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Lowercase SHA-256 of the exact execution-boundary bytes.",
+    )
+    storage_version: str = Field(
+        min_length=1,
+        max_length=512,
+        description="Provider-specific immutable object/version identity.",
+    )
+
+
+class ManifestInputRelationship(BaseModel):
+    """Relationship between source bytes and an execution-envelope file.
+
+    This makes preprocessing explicit. For example, an EnergyPlus template can
+    be recorded as the source while the generated IDF/epJSON file is the target,
+    preventing evidence from implying the original template bytes were executed.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source_kind: str = Field(
+        description=(
+            "Source category, such as submission, workflow_resource, "
+            "upstream_artifact, or generated."
+        ),
+    )
+    source_id: str = Field(
+        default="",
+        description="Stable producer-side source identifier, when available.",
+    )
+    source_name: str = Field(
+        default="",
+        description="Evidence-safe source filename or logical name.",
+    )
+    source_size_bytes: int | None = Field(
+        default=None,
+        ge=0,
+        description="Exact source size, when durably known.",
+    )
+    source_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Lowercase SHA-256 of the source bytes.",
+    )
+    target_channel: Literal["input_files", "resource_files"] = Field(
+        description="Input-envelope collection containing the target file.",
+    )
+    target_name: str = Field(description="Target file's safe logical name.")
+    target_port_key: str = Field(
+        default="",
+        description="Stable file-port key that disambiguates the target.",
+    )
+    target_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Lowercase SHA-256 of the execution-boundary target bytes.",
+    )
+    relationship: str = Field(
+        description="Explicit relationship, such as identical or transformed.",
+    )
+    transformation: str = Field(
+        default="",
+        description=(
+            "Stable transformation identifier when relationship is transformed."
+        ),
+    )
+
+
+class ManifestExecutionAttempt(BaseModel):
+    """Attempt-bound execution identity projected without storage URIs.
+
+    Only attempts with a committed canonical input-envelope digest belong in
+    this list. Failed retries may therefore appear, but an attempt must not set
+    ``inputs_verified`` merely because files were declared. The producer sets it
+    only after trusted completion confirms the strict backend crossed the input
+    verification boundary.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    execution_attempt_id: str = Field(description="ExecutionAttempt UUID.")
+    step_run_id: str = Field(description="Step-run identity executed by the attempt.")
+    attempt_number: int = Field(
+        ge=1,
+        description="Monotonic attempt number within the step run.",
+    )
+    state: str = Field(description="Durable terminal attempt state at evidence time.")
+    runner_type: str = Field(description="Execution provider/runner type.")
+    provider_execution_id: str = Field(
+        default="",
+        description="Provider-assigned execution identity, when available.",
+    )
+    attempt_contract_version: str = Field(
+        description="Strict attempt contract version used by the input envelope.",
+    )
+    input_envelope_sha256: str = Field(
+        pattern=r"^[0-9a-f]{64}$",
+        description="Canonical SHA-256 committed before provider execution.",
+    )
+    output_envelope_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+        description=(
+            "Canonical trusted output-envelope SHA-256, when produced and "
+            "permitted by retention policy."
+        ),
+    )
+    backend_image_digest: str = Field(
+        default="",
+        description="Resolved digest of the backend image used by this attempt.",
+    )
+    inputs_verified: bool = Field(
+        default=False,
+        description=(
+            "Whether trusted completion confirms strict streaming verification "
+            "completed before domain processing."
+        ),
+    )
+    input_files: list[ManifestExecutionInput] = Field(
+        default_factory=list,
+        description="URI-free file identities copied from the committed envelope.",
+    )
+    input_relationships: list[ManifestInputRelationship] = Field(
+        default_factory=list,
+        description="Source-to-execution relationships, including preprocessing.",
+    )
 
 
 class EvidenceManifest(BaseModel):
@@ -498,6 +680,14 @@ class EvidenceManifest(BaseModel):
             "artifact_input_bindings but do not create producer-step edges."
         ),
     )
+    execution_attempts: list[ManifestExecutionAttempt] = Field(
+        default_factory=list,
+        description=(
+            "Attempt-bound canonical envelope, provider, backend image, verified "
+            "file, and preprocessing evidence. Empty for inline validators or "
+            "producers predating strict execution evidence."
+        ),
+    )
     # The auth channel that initiated the run.  Pinning it in the
     # manifest lets verifiers answer "what surface produced this
     # run?" without consulting the producer database (the run row
@@ -525,6 +715,9 @@ __all__ = [
     "EvidenceManifest",
     "ManifestArtifactInputBinding",
     "ManifestArtifactLineageEdge",
+    "ManifestExecutionAttempt",
+    "ManifestExecutionInput",
+    "ManifestInputRelationship",
     "ManifestPayloadDigests",
     "ManifestProducedArtifact",
     "ManifestRetentionInfo",

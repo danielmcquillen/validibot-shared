@@ -19,6 +19,8 @@ What this file covers
 5. Artifact lineage fields are additive, evidence-safe projections:
    hashes and stable IDs are allowed; private storage URIs are not part
    of the public schema.
+6. Attempt-bound execution evidence records canonical envelopes, verified
+   input identities, and explicit preprocessing relationships without URIs.
 """
 
 from __future__ import annotations
@@ -33,6 +35,9 @@ from validibot_shared.evidence import (
     EvidenceManifest,
     ManifestArtifactInputBinding,
     ManifestArtifactLineageEdge,
+    ManifestExecutionAttempt,
+    ManifestExecutionInput,
+    ManifestInputRelationship,
     ManifestPayloadDigests,
     ManifestProducedArtifact,
     ManifestRetentionInfo,
@@ -207,6 +212,7 @@ class TestArtifactLineageFields:
             contract_key="generated_model",
             filename="model.epjson",
             sha256="a" * 64,
+            storage_version="42",
         )
         binding = ManifestArtifactInputBinding(
             target_step_id=20,
@@ -217,6 +223,7 @@ class TestArtifactLineageFields:
             source_artifact_id="artifact-1",
             source_filename="model.epjson",
             source_sha256="a" * 64,
+            source_storage_version="42",
             producer_step_key="build_model",
             producer_contract_key="generated_model",
             resolved=True,
@@ -243,6 +250,99 @@ class TestArtifactLineageFields:
         assert restored.schema_version == "validibot.evidence.v1"
         assert not hasattr(restored.produced_artifacts[0], "storage_uri")
         assert not hasattr(restored.artifact_input_bindings[0], "uri")
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Attempt-bound execution evidence — immutable files and transformations
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestExecutionAttemptEvidence:
+    """Pin the additive strict-execution evidence contract for verifiers."""
+
+    def test_execution_attempts_default_to_empty(self):
+        """Inline validators and older producers remain valid without attempts."""
+        manifest = EvidenceManifest(**_minimal_manifest_kwargs())
+
+        assert manifest.execution_attempts == []
+        assert manifest.schema_version == "validibot.evidence.v1"
+
+    def test_attempt_records_round_trip_without_storage_uris(self):
+        """Portable evidence keeps immutable identities but exposes no file URI."""
+        execution_input = ManifestExecutionInput(
+            channel="input_files",
+            name="generated.epjson",
+            role="primary-model",
+            port_key="primary_model",
+            media_type="application/json",
+            size_bytes=123,
+            sha256="b" * 64,
+            storage_version="sha256:" + "b" * 64,
+        )
+        relationship = ManifestInputRelationship(
+            source_kind="submission",
+            source_id="submission-1",
+            source_name="template.epjson",
+            source_size_bytes=100,
+            source_sha256="a" * 64,
+            target_channel="input_files",
+            target_name="generated.epjson",
+            target_port_key="primary_model",
+            target_sha256="b" * 64,
+            relationship="transformed",
+            transformation="energyplus-template-substitution.v1",
+        )
+        attempt = ManifestExecutionAttempt(
+            execution_attempt_id="attempt-1",
+            step_run_id="step-run-1",
+            attempt_number=1,
+            state="COMPLETED",
+            runner_type="cloud_run_job",
+            provider_execution_id="execution-1",
+            attempt_contract_version="validibot.attempt.v2",
+            input_envelope_sha256="c" * 64,
+            output_envelope_sha256="d" * 64,
+            backend_image_digest="registry/energyplus@sha256:" + "e" * 64,
+            inputs_verified=True,
+            input_files=[execution_input],
+            input_relationships=[relationship],
+        )
+
+        manifest = EvidenceManifest(
+            **_minimal_manifest_kwargs(),
+            execution_attempts=[attempt],
+        )
+        restored = EvidenceManifest.model_validate(manifest.model_dump(mode="json"))
+
+        assert restored == manifest
+        assert restored.execution_attempts[0].inputs_verified is True
+        assert not hasattr(restored.execution_attempts[0].input_files[0], "uri")
+
+    def test_relationship_keeps_original_and_executed_digests_distinct(self):
+        """Preprocessing evidence cannot imply original bytes were executed."""
+        relationship = ManifestInputRelationship(
+            source_kind="submission",
+            source_sha256="a" * 64,
+            target_channel="input_files",
+            target_name="generated.idf",
+            target_sha256="b" * 64,
+            relationship="transformed",
+            transformation="energyplus-template-substitution.v1",
+        )
+
+        assert relationship.source_sha256 != relationship.target_sha256
+        assert relationship.relationship == "transformed"
+
+    def test_execution_input_rejects_invalid_integrity_identity(self):
+        """Evidence cannot accept an invalid digest or negative byte length."""
+        with pytest.raises(ValidationError):
+            ManifestExecutionInput(
+                channel="input_files",
+                name="model.idf",
+                size_bytes=-1,
+                sha256="not-a-sha256",
+                storage_version="generation-1",
+            )
 
 
 # ──────────────────────────────────────────────────────────────────────

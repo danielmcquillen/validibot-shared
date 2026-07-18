@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-07-18
+
+### Added
+
+- Add URI-free execution-attempt evidence records that bind canonical input
+  and output envelope digests, provider identity, backend image digest, strict
+  input file identities, and explicit source-to-executed transformations.
+- Add immutable storage versions to produced-artifact and consumed-artifact
+  evidence projections.
+
+### Changed
+
+- Clarify that `payload_digests.input_sha256` identifies the submission bytes
+  accepted by the producer and does not, by itself, claim those bytes crossed
+  the validator execution boundary unchanged.
+
+### Notes
+
+- Additive change: the evidence schema string stays `validibot.evidence.v1`.
+  Older manifests remain valid, while newer producers populate the
+  default-empty `execution_attempts` collection.
+
 ## [0.17.0] - 2026-07-17
 
 ### Changed (BREAKING)
