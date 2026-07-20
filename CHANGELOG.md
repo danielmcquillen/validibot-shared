@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-07-20
+
+### Added
+
+- Add immutable execution deployment ID, provider kind, provider revision, and
+  canonical provider resource to each execution-attempt evidence record.
+
+### Notes
+
+- Additive change: existing `validibot.evidence.v1` manifests remain valid.
+  New producers can prove the exact Cloud Run Service or Job deployment used
+  without exposing routes, credentials, or storage URIs.
+
 ## [0.18.0] - 2026-07-18
 
 ### Added

@@ -299,6 +299,13 @@ class TestExecutionAttemptEvidence:
             state="COMPLETED",
             runner_type="cloud_run_job",
             provider_execution_id="execution-1",
+            execution_deployment_id="deployment-1",
+            deployment_kind="cloud_run_service",
+            deployment_revision="validator-shacl-00042-abc",
+            provider_resource_name=(
+                "projects/example/locations/australia-southeast1/"
+                "services/validibot-validator-service-shacl"
+            ),
             attempt_contract_version="validibot.attempt.v2",
             input_envelope_sha256="c" * 64,
             output_envelope_sha256="d" * 64,
@@ -316,6 +323,10 @@ class TestExecutionAttemptEvidence:
 
         assert restored == manifest
         assert restored.execution_attempts[0].inputs_verified is True
+        assert (
+            restored.execution_attempts[0].deployment_revision
+            == "validator-shacl-00042-abc"
+        )
         assert not hasattr(restored.execution_attempts[0].input_files[0], "uri")
 
     def test_relationship_keeps_original_and_executed_digests_distinct(self):

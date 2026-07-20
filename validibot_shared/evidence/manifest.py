@@ -567,6 +567,25 @@ class ManifestExecutionAttempt(BaseModel):
         default="",
         description="Provider-assigned execution identity, when available.",
     )
+    execution_deployment_id: str = Field(
+        default="",
+        description=(
+            "Producer-side immutable deployment record selected before provider "
+            "contact."
+        ),
+    )
+    deployment_kind: str = Field(
+        default="",
+        description="Provider execution primitive, such as cloud_run_service.",
+    )
+    deployment_revision: str = Field(
+        default="",
+        description="Immutable provider revision selected for this attempt.",
+    )
+    provider_resource_name: str = Field(
+        default="",
+        description="Canonical provider resource pinned by the deployment.",
+    )
     attempt_contract_version: str = Field(
         description="Strict attempt contract version used by the input envelope.",
     )
