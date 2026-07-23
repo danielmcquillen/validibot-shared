@@ -148,9 +148,7 @@ def validate_expected_buildings_list_json(
                     and building["euit"] is not None
                     and not isinstance(building["euit"], str)
                 ):
-                    msg = (
-                        f"buildings[{index}].euit must be a canonical decimal string"
-                    )
+                    msg = f"buildings[{index}].euit must be a canonical decimal string"
                     raise ValueError(msg)
     return ExpectedBuildingsList.model_validate(payload)
 
@@ -291,15 +289,15 @@ class PortfolioManagerPropertyResult(BaseModel):
         default=None,
         ge=0,
     )
-    weather_normalized_site_electricity_intensity_kwh_ft2: Decimal | None = (
-        Field(default=None, ge=0)
+    weather_normalized_site_electricity_intensity_kwh_ft2: Decimal | None = Field(
+        default=None, ge=0
     )
     weather_normalized_site_natural_gas_therms: Decimal | None = Field(
         default=None,
         ge=0,
     )
-    weather_normalized_site_natural_gas_intensity_therms_ft2: Decimal | None = (
-        Field(default=None, ge=0)
+    weather_normalized_site_natural_gas_intensity_therms_ft2: Decimal | None = Field(
+        default=None, ge=0
     )
     onsite_renewable_electricity_generated_kwh: Decimal | None = Field(
         default=None,
