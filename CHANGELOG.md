@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-07-23
+
+### Added
+
+- Add the strict Portfolio Manager input/output envelope, canonical
+  per-property facts, domain findings, and bounded collection aggregates.
+- Add the versioned Expected Buildings List contract, duplicate-key and
+  semantic validation, defensive JSON bounds, and a published JSON Schema.
+- Add XLS, XLSX, XML, ZIP, and JSON MIME identities used by the new backend.
+
+### Notes
+
+- The application and validator-backends repositories must upgrade together;
+  Portfolio Manager is a new typed advanced-validator boundary.
+
 ## [0.19.0] - 2026-07-20
 
 ### Added

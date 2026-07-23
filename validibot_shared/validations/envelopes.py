@@ -159,6 +159,7 @@ class ValidatorType(str, Enum):
     FMU = "FMU"
     CUSTOM_VALIDATOR = "CUSTOM_VALIDATOR"
     AI_ASSIST = "AI_ASSIST"
+    PORTFOLIO_MANAGER = "PORTFOLIO_MANAGER"
 
 
 # ==============================================================================
@@ -194,6 +195,14 @@ class SupportedMimeType(str, Enum):
     RDF_JSON_LD = "application/ld+json"
     RDF_N_TRIPLES = "application/n-triples"
     RDF_N_QUADS = "application/n-quads"
+
+    # ENERGY STAR Portfolio Manager report carriers.
+    MICROSOFT_EXCEL_XLS = "application/vnd.ms-excel"
+    MICROSOFT_EXCEL_XLSX = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    APPLICATION_ZIP = "application/zip"
+    APPLICATION_JSON = "application/json"
 
 
 def _safe_leaf_name(value: str) -> str:

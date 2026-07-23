@@ -28,6 +28,14 @@ from validibot_shared.evidence import (
     WorkflowContractSnapshot,
 )
 from validibot_shared.fmu.models import FMUProbeResult, FMUVariableMeta
+from validibot_shared.portfolio_manager import (
+    ExpectedBuildingsList,
+    PortfolioManagerInputEnvelope,
+    PortfolioManagerInputs,
+    PortfolioManagerOutputEnvelope,
+    PortfolioManagerOutputs,
+    PortfolioManagerPropertyResult,
+)
 from validibot_shared.shacl.envelopes import (
     SHACLInputEnvelope,
     SHACLInputs,
@@ -49,11 +57,17 @@ __all__ = [
     "EvidenceManifest",
     "FMUProbeResult",
     "FMUVariableMeta",
+    "ExpectedBuildingsList",
     "ManifestPayloadDigests",
     "ManifestExecutionAttempt",
     "ManifestExecutionInput",
     "ManifestInputRelationship",
     "ManifestRetentionInfo",
+    "PortfolioManagerInputEnvelope",
+    "PortfolioManagerInputs",
+    "PortfolioManagerOutputEnvelope",
+    "PortfolioManagerOutputs",
+    "PortfolioManagerPropertyResult",
     "SHACLInputEnvelope",
     "SHACLInputs",
     "SHACLOutputEnvelope",
